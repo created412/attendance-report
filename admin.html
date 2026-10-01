@@ -222,7 +222,7 @@ var CFG = APP_CFG;
     var b = e.target.closest('[data-a]'); if (!b) return;
     var r = items[+b.dataset.i];
     if (b.dataset.a === 'view') preview(r);
-    if (b.dataset.a === 'cf') confirmDlg([r]);
+    if (b.dataset.a === 'cf') confirmSheet(r);
     if (b.dataset.a === 'pr') printSheets([r]);
     if (b.dataset.a === 'del') {
       if (!confirm(r.num + '번 ' + r.name + ' (' + r.start + ') 신고서를 삭제할까요?\n첨부된 증빙사진도 휴지통으로 이동합니다.')) return;
@@ -246,7 +246,7 @@ var CFG = APP_CFG;
       });
     }
     $('#x', ov).onclick = function () { ov.remove(); };
-    $('#cf', ov).onclick = function () { ov.remove(); confirmDlg([r]); };
+    $('#cf', ov).onclick = function () { ov.remove(); confirmSheet(r); };
     $('#pr', ov).onclick = function () { ov.remove(); printSheets([r]); };
     ov.addEventListener('click', function (e) { if (e.target === ov) ov.remove(); });
   }
@@ -309,6 +309,83 @@ var CFG = APP_CFG;
       loading(true, '저장 중…');
       call('saveConfirms', PW, map).then(function (n) { loading(false); ov.remove(); toast(n + '건 저장했습니다.'); load(); }).catch(function (m) { loading(false); alert(m); });
     }
+  }
+
+  /* ---------- 확인서 작성 (양식 위에서 직접) ---------- */
+  function confirmSheet(r) {
+    var src = r.confirm || {}, c = { method: src.method || '', rows: JSON.parse(JSON.stringify(src.rows || {})), attach: src.attach || '', date: src.date || '' };
+    var NAMES = { ga: '가. 가정방문', na: '나. 전화연락', da: '다. 기타' }, FL = { m: '월', d: '일', h: '시', who: '대화자 성명' };
+    var cur = null;
+    var ov = document.createElement('div'); ov.className = 'ov';
+    ov.innerHTML = '<div class="dlg wide"><h3>확인서 작성 — ' + esc(r.grade + '학년 ' + r.cls + '반 ' + r.num + '번 ' + r.name) + '</h3>' +
+      '<p class="help" id="cfHelp"></p><div class="pv-host" id="cfv"></div>' +
+      (tsig ? '' : '<p style="color:#b45309;font-size:13.5px;margin:10px 0 0">※ 담임 서명이 아직 등록되지 않았습니다. 상단 \'담임 서명 등록\'을 하면 확인일 입력 시 "(인)" 자리에 서명이 찍힙니다.</p>') +
+      '<div class="dlg-btns">' + (r.confirm ? '<button class="btn bad" id="clr" style="margin-right:auto">확인서 비우기</button>' : '') +
+      '<button class="btn" id="x">취소</button><button class="btn pri" id="ok">저장</button></div></div>';
+    document.body.appendChild(ov);
+    var host = $('#cfv', ov);
+    function paint() {
+      host.innerHTML = AB.render(Object.assign({}, r, { confirm: c }), { cfg: CFG, teacherSig: tsig, confirmEdit: true, cur: cur });
+      AB.fit(host);
+      $('#cfHelp', ov).textContent = c.method
+        ? NAMES[c.method] + ' 선택됨 — 그 줄의 노란 빈칸(월·일·시·대화자 성명)과 첨부·확인일을 눌러 채우세요. 다른 방법으로 바꾸려면 가·나·다를 다시 누르세요.'
+        : '먼저 확인방법(가. 가정방문 / 나. 전화연락 / 다. 기타) 중 하나를 양식에서 누르세요.';
+    }
+    host.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-k]'); if (!b) return;
+      var k = b.dataset.k.split(':');
+      if (k[0] === 'cm') {   // 확인방법 선택: 선택한 줄만 남김
+        var m = k[1], keep = c.rows[m] || {};
+        c.method = m; c.rows = {}; c.rows[m] = keep; paint();
+        chain(['m', 'd', 'h', 'who'].filter(function (f) { return !keep[f]; }).map(function (f) { return m + ':' + f; }));
+        return;
+      }
+      chain([k.slice(1).join(':')], true);
+    });
+    // 빈칸을 차례로 입력 (취소하면 멈춤)
+    function chain(list, force) {
+      if (!list.length) { cur = null; paint(); return; }
+      var key = list[0], p = key.split(':'), label, type = 'text', val;
+      if (p[0] === 'attach') { label = '2. 첨부'; val = c.attach; }
+      else if (p[0] === 'date') { label = '확인일'; type = 'date'; val = c.date; }
+      else { label = NAMES[p[0]] + ' — ' + FL[p[1]]; type = p[1] === 'who' ? 'text' : 'num'; val = (c.rows[p[0]] || {})[p[1]]; }
+      cur = p[0] === 'attach' || p[0] === 'date' ? 'cf:' + p[0] : 'cf:' + key; paint();
+      ask(label, type, val || '', p[0] === 'attach' ? (r.files.length ? '예) 증빙서류 ' + r.files.length + '매' : '예) 진단서 1부') : (p[1] === 'who' && r.pname ? '예) ' + r.pname : ''), function (v) {
+        if (v === null) { cur = null; paint(); return; }
+        if (p[0] === 'attach') c.attach = v; else if (p[0] === 'date') c.date = v;
+        else { c.rows[p[0]] = c.rows[p[0]] || {}; c.rows[p[0]][p[1]] = v; }
+        chain(list.slice(1));
+      });
+    }
+    function ask(label, type, val, ph, cb) {
+      var d = document.createElement('div'); d.className = 'ov'; d.style.zIndex = 900; d.style.alignItems = 'center';
+      d.innerHTML = '<form class="dlg" style="width:min(380px,100%)"><h3>' + esc(label) + '</h3>' +
+        '<input id="av" ' + (type === 'date' ? 'type="date"' : type === 'num' ? 'type="text" inputmode="numeric" maxlength="2"' : 'type="text" maxlength="40"') +
+        ' value="' + esc(val) + '" placeholder="' + esc(ph) + '" style="width:100%;height:46px;font-size:18px;border:2px solid #cbd5e1;border-radius:10px;padding:0 12px;margin-top:8px">' +
+        (type === 'date' ? '<button type="button" class="btn sm" id="tdy" style="margin-top:8px">오늘</button>' : '') +
+        '<div class="dlg-btns"><button type="button" class="btn" id="ac">닫기</button><button class="btn pri">확인</button></div></form>';
+      document.body.appendChild(d);
+      var inp = $('#av', d); setTimeout(function () { inp.focus(); inp.select && inp.select(); }, 30);
+      if ($('#tdy', d)) $('#tdy', d).onclick = function () { inp.value = CFG.today; };
+      $('#ac', d).onclick = function () { d.remove(); cb(null); };
+      $('form', d).onsubmit = function (e) {
+        e.preventDefault();
+        var v = inp.value.trim();
+        if (type === 'num' && v && !/^\d{1,2}$/.test(v)) { inp.style.borderColor = '#b91c1c'; return; }
+        d.remove(); cb(v);
+      };
+    }
+    function send(map) {
+      loading(true, '저장 중…');
+      call('saveConfirms', PW, map).then(function (n) { loading(false); ov.remove(); toast('확인서를 저장했습니다.'); load(); }).catch(function (m) { loading(false); alert(m); });
+    }
+    $('#x', ov).onclick = function () { ov.remove(); };
+    if ($('#clr', ov)) $('#clr', ov).onclick = function () { var m = {}; m[r.id] = null; send(m); };
+    $('#ok', ov).onclick = function () {
+      if (!c.method) { toast('확인방법(가·나·다) 중 하나를 먼저 고르세요.'); return; }
+      var m = {}; m[r.id] = c; send(m);
+    };
+    paint();
   }
 
   /* ---------- 담임 서명 ---------- */

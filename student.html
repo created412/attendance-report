@@ -104,9 +104,10 @@
 var CFG = APP_CFG;
 (function () {
   var $ = function (s) { return document.querySelector(s); };
-  var DRAFT_KEY = 'absence-draft-v1';
+  var DRAFT_KEY = 'absence-draft-v2';   // v1(작성일 자동입력 시절) 임시저장은 무시
   var blank = function () { return { status: '', detail: [], grade: '', cls: '', num: '', name: '', start: '', end: '', days: '', reason: '', wdate: '', sname: '', pname: '', sigS: '', sigP: '' }; };
   var rec = blank(), files = [], guided = false, cur = null, daysAuto = true;
+  try { localStorage.removeItem('absence-draft-v1'); } catch (e) {}
   try { var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (d && d.rec) { rec = Object.assign(blank(), d.rec); daysAuto = d.daysAuto !== false; } } catch (e) {}
 
   var parentOptional = function () { return rec.status === '미인정'; };

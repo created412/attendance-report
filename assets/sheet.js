@@ -129,6 +129,8 @@ var BOX=[[129.48, 87.88, 4.11], [148.02, 87.88, 4.11], [162.45, 87.88, 4.11], [1
     var c = r.confirm || {}, rows = c.rows || {};
     CROWS.forEach(function (cr) {
       var v = rows[cr[0]] || {}, bl = cr[1];
+      // 선택한 확인방법에 동그라미
+      if (c.method === cr[0]) s += '<ellipse cx="38.2" cy="' + (bl - 1.25) + '" rx="11.4" ry="2.75" fill="none" stroke="#000" stroke-width="0.3"/>';
       s += T(v.m, 55.4, bl, 9.96, 0, { anchor: 'middle' }) + T(v.d, 68.5, bl, 9.96, 0, { anchor: 'middle' }) +
         T(v.h, 82.5, bl, 9.96, 0, { anchor: 'middle' }) + T(v.who, 130.7, bl, 9.96, 0, { anchor: 'middle' });
     });
@@ -139,7 +141,29 @@ var BOX=[[129.48, 87.88, 4.11], [148.02, 87.88, 4.11], [162.45, 87.88, 4.11], [1
 
     var html = '<div class="ab-paper"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" style="font-family:' + esc(FONT_B) + '">' + s + '</svg>';
     if (o.editable) html += hotspots(r, o);
+    if (o.confirmEdit) html += confirmSpots(c, o);
     return html + '</div>';
+  }
+
+  /* 확인서 편집용 클릭 영역: 가/나/다 선택 → 선택한 줄의 월·일·시·대화자, 첨부, 확인일 */
+  function confirmSpots(c, o) {
+    var rows = c.rows || {}, h = '';
+    function box(k, x, b, w, empty, opt) {
+      opt = opt || {};
+      var cls = 'ab-hs' + (empty ? ' ab-empty' : '') + (o.cur === k ? ' ab-cur' : '');
+      return '<button type="button" class="' + cls + '" data-k="' + k + '" aria-label="' + (opt.label || k) + '" style="left:' + x + 'mm;top:' + (b - 4.7) + 'mm;width:' + w + 'mm;height:6.2mm"></button>';
+    }
+    CROWS.forEach(function (cr, i) {
+      var m = cr[0], b = cr[1], v = rows[m] || {}, on = c.method === m;
+      h += box('cm:' + m, 27.3, b, 23.4, !c.method, { label: ['가정방문', '전화연락', '기타'][i] });
+      if (on) {
+        h += box('cf:' + m + ':m', 51.3, b, 8.2, !v.m, { label: '월' }) + box('cf:' + m + ':d', 63.6, b, 9.8, !v.d, { label: '일' }) +
+          box('cf:' + m + ':h', 77.6, b, 9.8, !v.h, { label: '시' }) + box('cf:' + m + ':who', 115.3, b, 31, !v.who, { label: '대화자 성명' });
+      }
+    });
+    h += box('cf:attach', 40.2, 242.19, 146, !c.attach, { label: '첨부' });
+    h += box('cf:date', 86.4, 252.05, 37.4, !c.date, { label: '확인일' });
+    return h;
   }
 
   function hotspots(r, o) {
