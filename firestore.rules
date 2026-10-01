@@ -10,7 +10,7 @@ service cloud.firestore {
 
     match /reports/{rid} {
       allow create: if request.resource.data.keys().hasOnly(
-            ['status', 'detail', 'grade', 'cls', 'num', 'name', 'start', 'end', 'days', 'reason', 'wdate', 'pname',
+            ['status', 'detail', 'grade', 'cls', 'num', 'name', 'start', 'end', 'days', 'reason', 'wdate', 'pname', 'school',
              'sigS', 'sigP', 'fileCount', 'code', 'state', 'confirm', 'submitted'])
         && request.resource.data.status in ['질병', '미인정', '인정', '기타']
         && request.resource.data.detail is list && request.resource.data.detail.size() <= 4
@@ -19,6 +19,7 @@ service cloud.firestore {
         && str(request.resource.data.start, 10) && str(request.resource.data.end, 10)
         && str(request.resource.data.days, 3) && str(request.resource.data.reason, 120)
         && str(request.resource.data.wdate, 10) && str(request.resource.data.pname, 20)
+        && str(request.resource.data.school, 30)
         && str(request.resource.data.sigS, 60000) && str(request.resource.data.sigP, 60000)
         && request.resource.data.fileCount is int && request.resource.data.fileCount <= 3
         && request.resource.data.state == '접수' && request.resource.data.confirm == null

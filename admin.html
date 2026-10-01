@@ -72,6 +72,18 @@
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;z-index:1200}
   .loading{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:1300;display:grid;place-items:center;font-size:16px;font-weight:700;color:var(--pri-d)}
 
+  .cfd{width:min(700px,100%)}
+  .cf-t{font-family:'HCR Batang','Noto Serif KR',serif;font-size:15px}
+  .cf-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 10px;margin:6px 0;border:1px solid var(--line);border-radius:10px;font-family:'HCR Batang','Noto Serif KR',serif;font-size:15px;color:#94a3b8}
+  .cf-row.on{border-color:var(--pri);background:#eff6ff;color:var(--ink)}
+  .cf-lb{display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;min-width:124px;color:var(--ink)}
+  .cf-lb input{width:18px;height:18px}
+  .cf-f input{height:34px;border:1px solid #cbd5e1;border-radius:7px;padding:0 6px;font-size:15px;text-align:center;font-family:inherit}
+  .cf-f input:disabled{background:#f1f5f9;border-color:#e2e8f0}
+  .cf-row.on .cf-f input{background:#fffbe6;border-color:#e0b100}
+  .i2{width:44px}.i6{width:110px}
+  .cf-t input[type=date],.cf-t .i6{height:34px;border:1px solid #cbd5e1;border-radius:7px;padding:0 8px;font-size:15px}
+  .cf-opt{display:block;font-size:13.5px;color:var(--sub);margin:4px 2px;font-family:'Noto Sans KR',sans-serif}
   /* 인쇄 */
   #print{display:none}
   .att-page,.sum-page{width:210mm;height:297mm;padding:14mm 12mm;background:#fff;color:#000;display:flex;flex-direction:column;overflow:hidden}
@@ -112,7 +124,7 @@ var CFG = APP_CFG;
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var esc = AB.esc, PW = '', items = [], allItems = [], tsig = '', sel = {};
   var gc = function (r) { return (r.grade || '?') + '-' + (r.cls || '?'); };
-  function setSub() { $('#sub').textContent = CFG.school + (CFG.teacher ? ' · 담임 ' + CFG.teacher : ''); }
+  function setSub() { $('#sub').textContent = CFG.teacher ? '담임 ' + CFG.teacher : '담임 이름을 입력해 주세요'; }
   setSub();
 
   function call(fn) {
@@ -239,32 +251,54 @@ var CFG = APP_CFG;
 
   /* ---------- 확인서 작성 (개별 / 일괄) ---------- */
   function confirmDlg(list) {
-    var one = list.length === 1 ? list[0] : null, c = (one && one.confirm) || {};
-    var key = c.method || 'na', rw = (c.rows && c.rows[key]) || {};
-    var now = new Date(), td = CFG.today.split('-');
+    var one = list.length === 1 ? list[0] : null, c = (one && one.confirm) || {}, rows0 = c.rows || {};
+    var M = [['ga', '가. 가정방문'], ['na', '나. 전화연락'], ['da', '다. 기　　타']];
     var ov = document.createElement('div'); ov.className = 'ov';
-    ov.innerHTML = '<div class="dlg"><h3>확인서 작성' + (one ? ' — ' + esc(one.num + '번 ' + one.name) : ' (' + list.length + '건 일괄)') + '</h3>' +
-      '<p class="help">' + (one ? '' : '선택한 신고서 모두에 같은 확인 정보가 기록됩니다. ') + '저장하면 담임 서명이 확인서에 표시됩니다.</p>' +
-      '<div class="frm"><span>확인방법</span><div class="seg">' +
-      [['ga', '가정방문'], ['na', '전화연락'], ['da', '기타']].map(function (m) { return '<label><input type="radio" name="m" value="' + m[0] + '"' + (key === m[0] ? ' checked' : '') + '>' + m[1] + '</label>'; }).join('') + '</div>' +
-      '<span>확인 일시</span><div class="row3"><input type="number" id="cm" min="1" max="12" value="' + esc(rw.m || +td[1]) + '">월 <input type="number" id="cd" min="1" max="31" value="' + esc(rw.d || +td[2]) + '">일 <input type="number" id="ch" min="0" max="24" value="' + esc(rw.h || now.getHours()) + '">시</div>' +
-      '<span>대화자 성명</span><div>' + (one ? '<input type="text" id="who" value="' + esc(rw.who || one.pname || '') + '" placeholder="보호자 성명">'
-        : '<label style="font-size:14px"><input type="checkbox" id="autoWho" checked> 각 학생의 보호자 성명 자동 입력</label><input type="text" id="who" placeholder="직접 입력 (자동 입력 해제 시)" style="margin-top:6px">') + '</div>' +
-      '<span>첨부</span><div>' + (one ? '<input type="text" id="att" value="' + esc(c.attach != null ? c.attach : (one.files.length ? '증빙서류 ' + one.files.length + '매' : '')) + '" placeholder="예) 진단서 1부">'
-        : '<label style="font-size:14px"><input type="checkbox" id="autoAtt" checked> 증빙사진 수로 자동 입력 (예: 증빙서류 1매)</label>') + '</div>' +
-      '<span>확인일</span><input type="date" id="cdate" value="' + esc(c.date || CFG.today) + '"></div>' +
+    ov.innerHTML = '<div class="dlg cfd"><h3>확인서 작성' + (one ? ' — ' + esc(one.grade + '학년 ' + one.cls + '반 ' + one.num + '번 ' + one.name) : ' (' + list.length + '건 일괄)') + '</h3>' +
+      '<p class="help">확인방법을 하나 고르면 그 줄의 빈칸을 채울 수 있습니다.' + (one ? '' : ' 선택한 신고서 모두에 같은 내용이 기록됩니다.') + '</p>' +
+      '<div class="cf-t">위 신고 내용이 사실과 틀림없음을 확인합니다.</div><div class="cf-t" style="margin-top:8px">1. 확인방법</div>' +
+      M.map(function (m) {
+        var v = rows0[m[0]] || {}, on = c.method === m[0];
+        return '<div class="cf-row' + (on ? ' on' : '') + '" data-m="' + m[0] + '"><label class="cf-lb"><input type="radio" name="m" value="' + m[0] + '"' + (on ? ' checked' : '') + '> ' + m[1] + '</label>' +
+          '<span class="cf-f">( <input class="i2" data-f="m" inputmode="numeric" maxlength="2" value="' + esc(v.m || '') + '"> 월 ' +
+          '<input class="i2" data-f="d" inputmode="numeric" maxlength="2" value="' + esc(v.d || '') + '"> 일 ' +
+          '<input class="i2" data-f="h" inputmode="numeric" maxlength="2" value="' + esc(v.h || '') + '"> 시 대화자 성명 : ' +
+          '<input class="i6" data-f="who" maxlength="20" value="' + esc(v.who || '') + '"' + (one && one.pname ? ' placeholder="예) ' + esc(one.pname) + '"' : '') + '> )</span></div>';
+      }).join('') +
+      (one ? '' : '<label class="cf-opt"><input type="checkbox" id="autoWho" checked> 대화자 성명을 비워 두면 각 학생의 보호자 성명으로 채우기</label>') +
+      '<div class="cf-t" style="margin-top:12px">2. 첨 부 : ' + (one
+        ? '<input class="i6" id="att" style="width:220px" maxlength="40" value="' + esc(c.attach || '') + '" placeholder="' + (one.files.length ? '예) 증빙서류 ' + one.files.length + '매' : '예) 진단서 1부') + '">'
+        : '<label class="cf-opt" style="display:inline"><input type="checkbox" id="autoAtt"> 증빙사진 수로 채우기 (예: 증빙서류 1매)</label>') + '</div>' +
+      '<div class="cf-t" style="margin-top:12px">확인일 : <input type="date" id="cdate" value="' + esc(c.date || '') + '"> <button type="button" class="btn sm" id="today">오늘</button></div>' +
       (tsig ? '' : '<p style="color:#b45309;font-size:13.5px;margin:12px 0 0">※ 담임 서명이 아직 등록되지 않았습니다. 상단 \'담임 서명 등록\'을 먼저 하면 확인서에 서명이 찍힙니다.</p>') +
+      '<div id="er" style="color:#b91c1c;font-size:13.5px;min-height:18px;margin-top:8px"></div>' +
       '<div class="dlg-btns">' + (one && one.confirm ? '<button class="btn bad" id="clr" style="margin-right:auto">확인서 비우기</button>' : '') +
       '<button class="btn" id="x">취소</button><button class="btn pri" id="ok">저장</button></div></div>';
     document.body.appendChild(ov);
+    function sync(focus) {
+      ov.querySelectorAll('.cf-row').forEach(function (row) {
+        var on = row.querySelector('input[type=radio]').checked;
+        row.classList.toggle('on', on);
+        row.querySelectorAll('.cf-f input').forEach(function (i) { i.disabled = !on; });
+        if (on && focus) { var e = row.querySelector('.cf-f input'); setTimeout(function () { e.focus(); }, 30); }
+      });
+    }
+    ov.querySelectorAll('input[name=m]').forEach(function (r) { r.onchange = function () { sync(true); }; });
+    sync(false);
+    $('#today', ov).onclick = function () { $('#cdate', ov).value = CFG.today; };
     $('#x', ov).onclick = function () { ov.remove(); };
     if ($('#clr', ov)) $('#clr', ov).onclick = function () { var m = {}; m[one.id] = null; send(m); };
     $('#ok', ov).onclick = function () {
-      var method = $('input[name=m]:checked', ov).value, map = {};
+      var pick = $('input[name=m]:checked', ov);
+      if (!pick) { $('#er', ov).textContent = '확인방법(가정방문·전화연락·기타) 중 하나를 고르세요.'; return; }
+      var method = pick.value, row = $('.cf-row[data-m="' + method + '"]', ov), val = {};
+      row.querySelectorAll('.cf-f input').forEach(function (i) { val[i.dataset.f] = i.value.trim(); });
+      var map = {};
       list.forEach(function (r) {
-        var who = one ? $('#who', ov).value.trim() : ($('#autoWho', ov).checked ? r.pname : $('#who', ov).value.trim());
-        var att = one ? $('#att', ov).value.trim() : ($('#autoAtt', ov).checked ? (r.files.length ? '증빙서류 ' + r.files.length + '매' : '') : '');
-        var rows = {}; rows[method] = { m: $('#cm', ov).value, d: $('#cd', ov).value, h: $('#ch', ov).value, who: who };
+        var rw = Object.assign({}, val);
+        if (!one && !rw.who && $('#autoWho', ov).checked) rw.who = r.pname || '';
+        var att = one ? $('#att', ov).value.trim() : ($('#autoAtt', ov).checked && r.files.length ? '증빙서류 ' + r.files.length + '매' : '');
+        var rows = {}; rows[method] = rw;
         map[r.id] = { method: method, rows: rows, attach: att, date: $('#cdate', ov).value };
       });
       send(map);
@@ -305,7 +339,7 @@ var CFG = APP_CFG;
     if (!items.length) return toast('집계할 항목이 없습니다.');
     var ym = $('#ym').value.split('-'), basis = $('#basis').value;
     var title = basis === 'all' ? '출결신고서 제출 현황 (전체)' : ym[0] + '년 ' + (+ym[1]) + '월 출결신고서 제출 현황';
-    var h = '<div class="sum-page"><h2>' + esc(title) + '</h2><div class="meta">' + esc(CFG.school + ($('#klass').value ? ' ' + $('#klass').value.replace('-', '학년 ') + '반' : '') + (CFG.teacher ? ' · 담임 ' + CFG.teacher : '') + ' · 출력일 ' + CFG.today) + '</div>' +
+    var h = '<div class="sum-page"><h2>' + esc(title) + '</h2><div class="meta">' + esc(((items[0] && items[0].school) || '') + ($('#klass').value ? ' ' + $('#klass').value.replace('-', '학년 ') + '반' : '') + (CFG.teacher ? ' · 담임 ' + CFG.teacher : '') + ' · 출력일 ' + CFG.today) + '</div>' +
       '<table><thead><tr><th style="width:12mm">학년-반</th><th style="width:9mm">번호</th><th style="width:16mm">성명</th><th style="width:14mm">출결현황</th><th style="width:16mm">세부사항</th><th style="width:30mm">기간</th><th style="width:9mm">일수</th><th>사유</th><th style="width:10mm">증빙</th><th style="width:14mm">확인</th></tr></thead><tbody>' +
       items.map(function (r) {
         return '<tr><td>' + esc(gc(r)) + '</td><td>' + esc(r.num) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.status) + '</td><td>' + esc(r.detail.join(',')) + '</td><td>' + esc(r.start + (r.end !== r.start ? ' ~ ' + r.end.slice(5) : '')) + '</td><td>' + esc(r.days) + '</td><td class="l">' + esc(r.reason) + '</td><td>' + (r.files.length || '-') + '</td><td>' + (r.state === '확인완료' ? '완료' : '') + '</td></tr>';

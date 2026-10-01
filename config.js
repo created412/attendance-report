@@ -1,6 +1,5 @@
 /* ▼ 우리 반 설정 — 이 파일만 고치면 됩니다. */
 window.APP_CONFIG = {
-  school: '양지고등학교',
   teacher: '',          // 비워 두면 교사 화면에서 입력 (확인서 '학급담임' 칸)
 
   // 교사 화면에 로그인할 이메일 (Firebase Authentication 에 등록한 계정)
