@@ -110,8 +110,9 @@
 var CFG = APP_CFG;
 (function () {
   var $ = function (s, r) { return (r || document).querySelector(s); };
-  var esc = AB.esc, PW = '', items = [], tsig = '', sel = {};
-  function setSub() { $('#sub').textContent = CFG.school + ' ' + CFG.grade + '학년 ' + CFG.cls + '반' + (CFG.teacher ? ' · 담임 ' + CFG.teacher : ''); }
+  var esc = AB.esc, PW = '', items = [], allItems = [], tsig = '', sel = {};
+  var gc = function (r) { return (r.grade || '?') + '-' + (r.cls || '?'); };
+  function setSub() { $('#sub').textContent = CFG.school + (CFG.teacher ? ' · 담임 ' + CFG.teacher : ''); }
   setSub();
 
   function call(fn) {
@@ -149,7 +150,7 @@ var CFG = APP_CFG;
       '<div class="bar">' +
       '<label>월 <input type="month" id="ym"></label>' +
       '<label>기준 <select id="basis"><option value="period">출결 기간 (그 달에 걸친 건)</option><option value="submit">제출일</option><option value="all">전체 보기</option></select></label>' +
-      '<button class="btn" id="reload">새로고침</button><span class="sep"></span>' +
+      '<label>학급 <select id="klass"><option value="">전체</option></select></label><button class="btn" id="reload">새로고침</button><span class="sep"></span>' +
       '<button class="btn pri" id="pSel">선택 인쇄</button><button class="btn" id="pAll">이 달 전체 인쇄</button>' +
       '<label><input type="checkbox" id="withAtt" checked> 증빙사진 함께</label><span class="sep"></span>' +
       '<button class="btn" id="bulk">선택 확인서 일괄 작성</button><button class="btn" id="pSum">집계표 인쇄</button>' +
@@ -161,13 +162,19 @@ var CFG = APP_CFG;
     $('#pAll').onclick = function () { if (!items.length) return toast('인쇄할 항목이 없습니다.'); printSheets(items); };
     $('#bulk').onclick = function () { var l = selected(); if (!l.length) return toast('확인서를 작성할 항목을 선택하세요.'); confirmDlg(l); };
     $('#pSum').onclick = printSummary;
+    $('#klass').onchange = function () { filterItems(); sel = {}; draw(); };
     load();
   }
+  function filterItems() { var k = $('#klass').value; items = allItems.filter(function (r) { return !k || gc(r) === k; }); }
   function selected() { return items.filter(function (r) { return sel[r.id]; }); }
   function load() {
     loading(true);
     call('listReports', PW, $('#ym').value, $('#basis').value).then(function (res) {
-      items = res.items; tsig = res.teacherSig; if (res.teacherName) CFG.teacher = res.teacherName; setSub(); sel = {}; loading(false); draw();
+      allItems = res.items; tsig = res.teacherSig;
+      var cur = $('#klass').value, ks = [];
+      allItems.forEach(function (r) { if (ks.indexOf(gc(r)) < 0) ks.push(gc(r)); });
+      $('#klass').innerHTML = '<option value="">전체</option>' + ks.map(function (k) { var p = k.split('-'); return '<option value="' + esc(k) + '"' + (k === cur ? ' selected' : '') + '>' + esc(p[0] + '학년 ' + p[1] + '반') + '</option>'; }).join('');
+      filterItems(); if (res.teacherName) CFG.teacher = res.teacherName; setSub(); sel = {}; loading(false); draw();
     }).catch(function (m) { loading(false); if (/권한|로그인/.test(m)) loginView(m); else alert(m); });
   }
   function draw() {
@@ -182,9 +189,9 @@ var CFG = APP_CFG;
       call('saveTeacherName', PW, v).then(function () { CFG.teacher = v; setSub(); loading(false); draw(); toast('담임 이름을 저장했습니다.'); }).catch(function (m) { loading(false); alert(m); });
     };
     if (!items.length) { $('#list').innerHTML = '<div class="empty">해당 기간에 제출된 신고서가 없습니다.</div>'; return; }
-    $('#list').innerHTML = '<table class="list"><thead><tr><th><input type="checkbox" id="all" aria-label="전체 선택"></th><th>번호</th><th>성명</th><th>출결현황</th><th>세부사항</th><th>기간</th><th>일수</th><th>사유</th><th>증빙</th><th>제출일시</th><th>상태</th><th></th></tr></thead><tbody>' +
+    $('#list').innerHTML = '<table class="list"><thead><tr><th><input type="checkbox" id="all" aria-label="전체 선택"></th><th>학년-반</th><th>번호</th><th>성명</th><th>출결현황</th><th>세부사항</th><th>기간</th><th>일수</th><th>사유</th><th>증빙</th><th>제출일시</th><th>상태</th><th></th></tr></thead><tbody>' +
       items.map(function (r, i) {
-        return '<tr><td><input type="checkbox" data-sel="' + esc(r.id) + '"' + (sel[r.id] ? ' checked' : '') + '></td><td class="num">' + esc(r.num) + '</td><td><b>' + esc(r.name) + '</b></td>' +
+        return '<tr><td><input type="checkbox" data-sel="' + esc(r.id) + '"' + (sel[r.id] ? ' checked' : '') + '></td><td class="num">' + esc(gc(r)) + '</td><td class="num">' + esc(r.num) + '</td><td><b>' + esc(r.name) + '</b></td>' +
           '<td>' + esc(r.status) + '</td><td>' + r.detail.map(function (d) { return '<span class="tag">' + esc(d) + '</span>'; }).join('') + '</td>' +
           '<td class="num">' + esc(r.start.slice(5)) + (r.end !== r.start ? ' ~ ' + esc(r.end.slice(5)) : '') + '</td><td class="num">' + esc(r.days) + '</td>' +
           '<td class="reason" title="' + esc(r.reason) + '">' + esc(r.reason) + '</td><td>' + (r.files.length ? r.files.length + '장' : '-') + '</td>' +
@@ -213,7 +220,7 @@ var CFG = APP_CFG;
   /* ---------- 미리보기 ---------- */
   function preview(r) {
     var ov = document.createElement('div'); ov.className = 'ov';
-    ov.innerHTML = '<div class="dlg wide"><h3>' + esc(r.num + '번 ' + r.name) + ' — ' + esc(r.status + ' ' + r.detail.join('·')) + '</h3><p class="help">접수번호 ' + esc(r.code || r.id) + ' · 제출 ' + esc(r.submitted) + '</p>' +
+    ov.innerHTML = '<div class="dlg wide"><h3>' + esc(r.grade + '학년 ' + r.cls + '반 ' + r.num + '번 ' + r.name) + ' — ' + esc(r.status + ' ' + r.detail.join('·')) + '</h3><p class="help">접수번호 ' + esc(r.code || r.id) + ' · 제출 ' + esc(r.submitted) + '</p>' +
       '<div class="pv-host" id="pv"></div><div id="atts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>' +
       '<div class="dlg-btns"><button class="btn" id="x">닫기</button><button class="btn" id="cf">확인서 작성</button><button class="btn pri" id="pr">이 신고서 인쇄</button></div></div>';
     document.body.appendChild(ov);
@@ -298,10 +305,10 @@ var CFG = APP_CFG;
     if (!items.length) return toast('집계할 항목이 없습니다.');
     var ym = $('#ym').value.split('-'), basis = $('#basis').value;
     var title = basis === 'all' ? '출결신고서 제출 현황 (전체)' : ym[0] + '년 ' + (+ym[1]) + '월 출결신고서 제출 현황';
-    var h = '<div class="sum-page"><h2>' + esc(title) + '</h2><div class="meta">' + esc(CFG.school + ' ' + CFG.grade + '학년 ' + CFG.cls + '반' + (CFG.teacher ? ' · 담임 ' + CFG.teacher : '') + ' · 출력일 ' + CFG.today) + '</div>' +
-      '<table><thead><tr><th style="width:9mm">번호</th><th style="width:16mm">성명</th><th style="width:14mm">출결현황</th><th style="width:16mm">세부사항</th><th style="width:30mm">기간</th><th style="width:9mm">일수</th><th>사유</th><th style="width:10mm">증빙</th><th style="width:14mm">확인</th></tr></thead><tbody>' +
+    var h = '<div class="sum-page"><h2>' + esc(title) + '</h2><div class="meta">' + esc(CFG.school + ($('#klass').value ? ' ' + $('#klass').value.replace('-', '학년 ') + '반' : '') + (CFG.teacher ? ' · 담임 ' + CFG.teacher : '') + ' · 출력일 ' + CFG.today) + '</div>' +
+      '<table><thead><tr><th style="width:12mm">학년-반</th><th style="width:9mm">번호</th><th style="width:16mm">성명</th><th style="width:14mm">출결현황</th><th style="width:16mm">세부사항</th><th style="width:30mm">기간</th><th style="width:9mm">일수</th><th>사유</th><th style="width:10mm">증빙</th><th style="width:14mm">확인</th></tr></thead><tbody>' +
       items.map(function (r) {
-        return '<tr><td>' + esc(r.num) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.status) + '</td><td>' + esc(r.detail.join(',')) + '</td><td>' + esc(r.start + (r.end !== r.start ? ' ~ ' + r.end.slice(5) : '')) + '</td><td>' + esc(r.days) + '</td><td class="l">' + esc(r.reason) + '</td><td>' + (r.files.length || '-') + '</td><td>' + (r.state === '확인완료' ? '완료' : '') + '</td></tr>';
+        return '<tr><td>' + esc(gc(r)) + '</td><td>' + esc(r.num) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.status) + '</td><td>' + esc(r.detail.join(',')) + '</td><td>' + esc(r.start + (r.end !== r.start ? ' ~ ' + r.end.slice(5) : '')) + '</td><td>' + esc(r.days) + '</td><td class="l">' + esc(r.reason) + '</td><td>' + (r.files.length || '-') + '</td><td>' + (r.state === '확인완료' ? '완료' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     doPrint(h);
   }

@@ -10,10 +10,11 @@ service cloud.firestore {
 
     match /reports/{rid} {
       allow create: if request.resource.data.keys().hasOnly(
-            ['status', 'detail', 'num', 'name', 'start', 'end', 'days', 'reason', 'wdate', 'pname',
+            ['status', 'detail', 'grade', 'cls', 'num', 'name', 'start', 'end', 'days', 'reason', 'wdate', 'pname',
              'sigS', 'sigP', 'fileCount', 'code', 'state', 'confirm', 'submitted'])
         && request.resource.data.status in ['질병', '미인정', '인정', '기타']
         && request.resource.data.detail is list && request.resource.data.detail.size() <= 4
+        && str(request.resource.data.grade, 2) && str(request.resource.data.cls, 2)
         && str(request.resource.data.num, 3) && str(request.resource.data.name, 20)
         && str(request.resource.data.start, 10) && str(request.resource.data.end, 10)
         && str(request.resource.data.days, 3) && str(request.resource.data.reason, 120)

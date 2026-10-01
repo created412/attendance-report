@@ -8,7 +8,7 @@ function clean(rec) {
   const s = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
   return {
     status: s(rec.status, 10), detail: (rec.detail || []).map((d) => s(d, 10)).slice(0, 4),
-    num: s(rec.num, 3), name: s(rec.name, 20), start: s(rec.start, 10), end: s(rec.end, 10), days: s(rec.days, 3),
+    grade: s(rec.grade, 2), cls: s(rec.cls, 2), num: s(rec.num, 3), name: s(rec.name, 20), start: s(rec.start, 10), end: s(rec.end, 10), days: s(rec.days, 3),
     reason: s(rec.reason, 120), wdate: s(rec.wdate, 10), pname: s(rec.pname, 20),
     sigS: String(rec.sigS || ''), sigP: String(rec.sigP || '')
   };
@@ -18,7 +18,7 @@ function inMonth(r, ym, basis) {
   if (basis === 'submit') return r.submitted.slice(0, 7) === ym;
   return r.start.slice(0, 7) <= ym && r.end.slice(0, 7) >= ym;
 }
-const byNum = (a, b) => (Number(a.num) - Number(b.num)) || (a.start < b.start ? -1 : 1);
+const byNum = (a, b) => (Number(a.grade) - Number(b.grade)) || (Number(a.cls) - Number(b.cls)) || (Number(a.num) - Number(b.num)) || (a.start < b.start ? -1 : 1);
 
 let API;
 if (C.firebase && C.firebase.apiKey) {
