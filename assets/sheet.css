@@ -1,0 +1,25 @@
+.ab-paper{position:relative;width:210mm;height:297mm;background:#fff;color:#000;overflow:hidden;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;flex:none}
+  .ab-paper svg{position:absolute;inset:0;width:210mm;height:297mm;display:block}
+  .ab-hs{position:absolute;border:0;padding:0;margin:0;background:transparent;cursor:pointer;border-radius:1mm;
+    -webkit-tap-highlight-color:transparent;transition:background .15s, box-shadow .15s}
+  .ab-hs:hover{background:rgba(37,99,235,.10)}
+  .ab-hs.ab-empty{background:rgba(255,214,0,.30);box-shadow:inset 0 0 0 .3mm rgba(214,158,0,.9)}
+  .ab-hs.ab-cur{background:rgba(37,99,235,.18);box-shadow:inset 0 0 0 .5mm #2563eb;animation:abPulse 1.2s ease-in-out infinite}
+  @keyframes abPulse{50%{box-shadow:inset 0 0 0 .5mm #2563eb,0 0 0 1.4mm rgba(37,99,235,.18)}}
+
+  /* 서명 패드 (은행 창구 태블릿 방식) */
+  .ab-pad-ov{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:12px}
+  .ab-pad-box{background:#fff;border-radius:16px;width:min(760px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);font-family:'Noto Sans KR','Malgun Gothic',sans-serif}
+  .ab-pad-head{padding:16px 20px 10px;border-bottom:1px solid #e5e7eb}
+  .ab-pad-head b{display:block;font-size:19px;color:#0f172a}
+  .ab-pad-head span{display:block;font-size:14px;color:#475569;margin-top:4px}
+  .ab-pad-area{position:relative;margin:14px 16px;height:min(46vh,300px);border:2px dashed #94a3b8;border-radius:12px;background:#f8fafc;touch-action:none}
+  .ab-pad-area canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+  .ab-pad-guide{position:absolute;left:50%;top:50%;transform:translate(-50%,-62%);font-size:64px;font-weight:700;color:#e2e8f0;pointer-events:none;user-select:none;letter-spacing:.2em}
+  .ab-pad-line{position:absolute;left:8%;right:8%;bottom:26%;border-bottom:2px solid #cbd5e1;pointer-events:none}
+  .ab-pad-x{position:absolute;left:8%;bottom:calc(26% + 4px);font-size:22px;color:#94a3b8;pointer-events:none}
+  .ab-pad-btns{display:flex;gap:8px;padding:0 16px 16px}
+  .ab-pad-btns button{flex:1;height:52px;border-radius:10px;font-size:17px;font-weight:700;border:1px solid #cbd5e1;background:#fff;color:#334155;cursor:pointer;font-family:inherit}
+  .ab-pad-btns .ok{flex:1.6;background:#1d4ed8;border-color:#1d4ed8;color:#fff}

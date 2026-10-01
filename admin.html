@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>출결신고서 수합 (교사용)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sheet.css">
+<script src="config.js"></script>
+<script src="assets/sheet.js"></script>
+<script type="module" src="assets/api.js"></script>
+<style>
+  :root{--pri:#1d4ed8;--pri-d:#1e3a8a;--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#f1f5f9;--ok:#047857;--warn:#b45309;--bad:#b91c1c}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR','Malgun Gothic',-apple-system,sans-serif}
+  button,input,select{font-family:inherit}
+  .top{background:var(--pri-d);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .top h1{margin:0;font-size:18px}
+  .top p{margin:0;font-size:13px;opacity:.85}
+  .top .sp{flex:1}
+  .top a,.top button{color:#fff;font-size:13px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 10px;text-decoration:none;cursor:pointer}
+  main{max-width:1280px;margin:0 auto;padding:16px}
+  .login{max-width:360px;margin:12vh auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px}
+  .login h2{margin:0 0 4px;font-size:20px}
+  .login p{margin:0 0 16px;color:var(--sub);font-size:14px}
+  .login input{width:100%;height:48px;font-size:17px;border:2px solid #cbd5e1;border-radius:10px;padding:0 12px;margin-bottom:10px}
+  .btn{height:38px;border-radius:9px;border:1px solid #cbd5e1;background:#fff;color:var(--ink);font-size:14px;font-weight:600;cursor:pointer;padding:0 12px;white-space:nowrap}
+  .btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+  .btn.sm{height:30px;font-size:13px;padding:0 9px;border-radius:7px}
+  .btn.bad{color:var(--bad)}
+  .btn:disabled{opacity:.45;cursor:default}
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+  .bar label{font-size:13px;color:var(--sub);display:flex;align-items:center;gap:6px}
+  .bar input[type=month],.bar select{height:38px;border:1px solid #cbd5e1;border-radius:9px;padding:0 8px;font-size:14px;background:#fff}
+  .bar .sep{width:1px;height:26px;background:var(--line);margin:0 2px}
+  .stats{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 16px;min-width:120px}
+  .stat small{display:block;font-size:12px;color:var(--sub)}
+  .stat b{font-size:24px;font-variant-numeric:tabular-nums}
+  .tbl-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:auto}
+  table.list{width:100%;border-collapse:collapse;font-size:14px;min-width:980px}
+  .list th{position:sticky;top:0;background:#f8fafc;text-align:left;font-weight:600;color:var(--sub);font-size:12.5px;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .list td{padding:9px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+  .list tr:hover td{background:#fafcff}
+  .list .reason{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155}
+  .num{font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;font-size:12px;font-weight:700;border-radius:99px;padding:2px 9px}
+  .pill.ok{background:#d1fae5;color:var(--ok)}
+  .pill.wait{background:#fef3c7;color:var(--warn)}
+  .tag{display:inline-block;font-size:12px;border:1px solid #cbd5e1;border-radius:6px;padding:1px 6px;margin-right:2px}
+  .empty{padding:50px;text-align:center;color:var(--sub)}
+  .acts{display:flex;gap:4px;white-space:nowrap}
+
+  .ov{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:800;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px}
+  .dlg{background:#fff;border-radius:16px;width:min(560px,100%);padding:20px;margin:auto}
+  .dlg.wide{width:min(900px,100%)}
+  .dlg h3{margin:0 0 4px;font-size:19px}
+  .dlg .help{margin:0 0 14px;color:var(--sub);font-size:13.5px}
+  .frm{display:grid;grid-template-columns:110px 1fr;gap:10px 12px;align-items:center;font-size:14px}
+  .frm>span{color:var(--sub)}
+  .frm input[type=text],.frm input[type=date],.frm input[type=number]{height:40px;border:1px solid #cbd5e1;border-radius:9px;padding:0 10px;font-size:15px;width:100%}
+  .row3{display:flex;gap:6px;align-items:center}
+  .row3 input{width:70px!important}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg label{border:1px solid #cbd5e1;border-radius:9px;padding:8px 12px;cursor:pointer;font-size:14px}
+  .seg input{margin-right:4px}
+  .dlg-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+  .pv-host{position:relative;width:100%;overflow:hidden;border:1px solid var(--line);border-radius:6px;background:#fff}
+  .sigbox{display:flex;align-items:center;gap:10px}
+  .sigbox img{height:38px;border:1px solid var(--line);border-radius:6px;background:#f8fafc;padding:2px 6px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;z-index:1200}
+  .loading{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:1300;display:grid;place-items:center;font-size:16px;font-weight:700;color:var(--pri-d)}
+
+  /* 인쇄 */
+  #print{display:none}
+  .att-page,.sum-page{width:210mm;height:297mm;padding:14mm 12mm;background:#fff;color:#000;display:flex;flex-direction:column;overflow:hidden}
+  .att-page .cap{font-size:10pt;margin-bottom:4mm;font-family:'Noto Sans KR','Malgun Gothic',sans-serif}
+  .att-page .imgw{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+  .att-page img{max-width:100%;max-height:100%;object-fit:contain}
+  .sum-page{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;height:auto;min-height:297mm}
+  .sum-page h2{font-size:15pt;text-align:center;margin:0 0 2mm}
+  .sum-page .meta{text-align:right;font-size:9pt;margin-bottom:3mm}
+  .sum-page table{width:100%;border-collapse:collapse;font-size:9pt}
+  .sum-page th,.sum-page td{border:.2mm solid #000;padding:1.6mm 1.4mm;text-align:center}
+  .sum-page th{background:#e5e5e5}
+  .sum-page td.l{text-align:left}
+  @page{size:A4;margin:0}
+  @media print{
+    html,body{background:#fff}
+    body>*:not(#print){display:none!important}
+    #print{display:block}
+    #print>*{page-break-after:always;break-after:page}
+    #print>*:last-child{page-break-after:auto;break-after:auto}
+    #print .ab-paper{transform:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="top">
+  <div><h1>출결신고서 수합</h1><p id="sub"></p></div>
+  <div class="sp"></div>
+  <a id="sheetLink" href="#" target="_blank" rel="noopener" style="display:none">구글 시트 열기</a>
+  <button id="logout" style="display:none">로그아웃</button>
+</div>
+<main id="app"></main>
+<div id="print"></div>
+
+<script>
+var CFG = APP_CFG;
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var esc = AB.esc, PW = '', items = [], tsig = '', sel = {};
+  $('#sub').textContent = CFG.school + ' ' + CFG.grade + '학년 ' + CFG.cls + '반 · 담임 ' + CFG.teacher;
+
+  function call(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return apiReady.then(function (api) { return api[fn].apply(api, args); })
+      .catch(function (e) { throw (e && e.message) || String(e); });
+  }
+  function loading(on, msg) { var l = $('.loading'); if (on && !l) { l = document.createElement('div'); l.className = 'loading'; document.body.appendChild(l); } if (l) { if (on) l.textContent = msg || '불러오는 중…'; else l.remove(); } }
+  var tt; function toast(m) { var t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = m; clearTimeout(tt); tt = setTimeout(function () { t.remove(); }, 2800); }
+
+  /* ---------- 로그인 ---------- */
+  function loginView(msg) {
+    var demo = window.API && API.mode === 'demo';
+    $('#app').innerHTML = '<form class="login" id="lf"><h2>교사 로그인</h2><p>' + (demo ? '체험 모드입니다. 아무 이메일 + 비밀번호 <b>1234</b>' : '담임 계정으로 로그인하세요.') + '</p>' +
+      '<input type="email" id="em" autocomplete="username" placeholder="이메일" value="' + esc(CFG.teacherEmail || '') + '">' +
+      '<input type="password" id="pw" autocomplete="current-password" placeholder="비밀번호"><div style="color:#b91c1c;font-size:13px;min-height:18px;margin-bottom:6px">' + esc(msg || '') + '</div>' +
+      '<button class="btn pri" style="width:100%;height:46px;font-size:16px">로그인</button></form>';
+    ($('#em').value ? $('#pw') : $('#em')).focus();
+    $('#lf').onsubmit = function (e) { e.preventDefault(); login({ email: $('#em').value.trim(), pw: $('#pw').value }); };
+  }
+  function entered(res) {
+    if (res && res.sheetUrl) { $('#sheetLink').href = res.sheetUrl; $('#sheetLink').textContent = '데이터 보기(Firebase)'; $('#sheetLink').style.display = ''; }
+    $('#logout').style.display = '';
+    loading(false); mainView();
+  }
+  function login(cred) {
+    loading(true, '확인 중…');
+    call('adminLogin', cred).then(entered).catch(function (m) { loading(false); loginView(m); });
+  }
+  $('#logout').onclick = function () { call('logout').then(function () { location.reload(); }); };
+
+  /* ---------- 목록 ---------- */
+  function mainView() {
+    $('#app').innerHTML =
+      '<div class="bar">' +
+      '<label>월 <input type="month" id="ym"></label>' +
+      '<label>기준 <select id="basis"><option value="period">출결 기간 (그 달에 걸친 건)</option><option value="submit">제출일</option><option value="all">전체 보기</option></select></label>' +
+      '<button class="btn" id="reload">새로고침</button><span class="sep"></span>' +
+      '<button class="btn pri" id="pSel">선택 인쇄</button><button class="btn" id="pAll">이 달 전체 인쇄</button>' +
+      '<label><input type="checkbox" id="withAtt" checked> 증빙사진 함께</label><span class="sep"></span>' +
+      '<button class="btn" id="bulk">선택 확인서 일괄 작성</button><button class="btn" id="pSum">집계표 인쇄</button>' +
+      '<span class="sep"></span><span class="sigbox" id="sigbox"></span></div>' +
+      '<div class="stats" id="stats"></div><div class="tbl-wrap" id="list"></div>';
+    $('#ym').value = CFG.today.slice(0, 7);
+    $('#ym').onchange = $('#basis').onchange = $('#reload').onclick = load;
+    $('#pSel').onclick = function () { var l = selected(); if (!l.length) return toast('인쇄할 항목을 선택하세요.'); printSheets(l); };
+    $('#pAll').onclick = function () { if (!items.length) return toast('인쇄할 항목이 없습니다.'); printSheets(items); };
+    $('#bulk').onclick = function () { var l = selected(); if (!l.length) return toast('확인서를 작성할 항목을 선택하세요.'); confirmDlg(l); };
+    $('#pSum').onclick = printSummary;
+    load();
+  }
+  function selected() { return items.filter(function (r) { return sel[r.id]; }); }
+  function load() {
+    loading(true);
+    call('listReports', PW, $('#ym').value, $('#basis').value).then(function (res) {
+      items = res.items; tsig = res.teacherSig; sel = {}; loading(false); draw();
+    }).catch(function (m) { loading(false); if (/권한|로그인/.test(m)) loginView(m); else alert(m); });
+  }
+  function draw() {
+    var ok = items.filter(function (r) { return r.state === '확인완료'; }).length;
+    var days = items.reduce(function (a, r) { return a + (+r.days || 0); }, 0);
+    $('#stats').innerHTML = stat('제출', items.length + '건') + stat('확인완료', ok + '건') + stat('미확인', (items.length - ok) + '건') + stat('신고 일수 합계', days + '일');
+    $('#sigbox').innerHTML = tsig ? '<img src="' + tsig + '" alt="담임 서명"><button class="btn sm" id="sigBtn">담임 서명 다시 등록</button>'
+      : '<button class="btn" id="sigBtn" style="border-color:#f59e0b;color:#b45309">담임 서명 등록</button>';
+    $('#sigBtn').onclick = regSig;
+    if (!items.length) { $('#list').innerHTML = '<div class="empty">해당 기간에 제출된 신고서가 없습니다.</div>'; return; }
+    $('#list').innerHTML = '<table class="list"><thead><tr><th><input type="checkbox" id="all" aria-label="전체 선택"></th><th>번호</th><th>성명</th><th>출결현황</th><th>세부사항</th><th>기간</th><th>일수</th><th>사유</th><th>증빙</th><th>제출일시</th><th>상태</th><th></th></tr></thead><tbody>' +
+      items.map(function (r, i) {
+        return '<tr><td><input type="checkbox" data-sel="' + esc(r.id) + '"' + (sel[r.id] ? ' checked' : '') + '></td><td class="num">' + esc(r.num) + '</td><td><b>' + esc(r.name) + '</b></td>' +
+          '<td>' + esc(r.status) + '</td><td>' + r.detail.map(function (d) { return '<span class="tag">' + esc(d) + '</span>'; }).join('') + '</td>' +
+          '<td class="num">' + esc(r.start.slice(5)) + (r.end !== r.start ? ' ~ ' + esc(r.end.slice(5)) : '') + '</td><td class="num">' + esc(r.days) + '</td>' +
+          '<td class="reason" title="' + esc(r.reason) + '">' + esc(r.reason) + '</td><td>' + (r.files.length ? r.files.length + '장' : '-') + '</td>' +
+          '<td class="num" style="font-size:12.5px;color:#64748b">' + esc(r.submitted.slice(5, 16)) + '</td>' +
+          '<td>' + (r.state === '확인완료' ? '<span class="pill ok">확인완료</span>' : '<span class="pill wait">미확인</span>') + '</td>' +
+          '<td class="acts"><button class="btn sm" data-a="view" data-i="' + i + '">보기</button><button class="btn sm" data-a="cf" data-i="' + i + '">확인서</button><button class="btn sm" data-a="pr" data-i="' + i + '">인쇄</button><button class="btn sm bad" data-a="del" data-i="' + i + '">삭제</button></td></tr>';
+      }).join('') + '</tbody></table>';
+    $('#all').onchange = function () { var c = this.checked; items.forEach(function (r) { sel[r.id] = c; }); draw(); };
+    $('#all').checked = items.every(function (r) { return sel[r.id]; });
+  }
+  function stat(a, b) { return '<div class="stat"><small>' + a + '</small><b>' + b + '</b></div>'; }
+  document.addEventListener('change', function (e) { var c = e.target.closest('[data-sel]'); if (c) sel[c.dataset.sel] = c.checked; });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-a]'); if (!b) return;
+    var r = items[+b.dataset.i];
+    if (b.dataset.a === 'view') preview(r);
+    if (b.dataset.a === 'cf') confirmDlg([r]);
+    if (b.dataset.a === 'pr') printSheets([r]);
+    if (b.dataset.a === 'del') {
+      if (!confirm(r.num + '번 ' + r.name + ' (' + r.start + ') 신고서를 삭제할까요?\n첨부된 증빙사진도 휴지통으로 이동합니다.')) return;
+      loading(true, '삭제 중…');
+      call('deleteReport', PW, r.id).then(function () { loading(false); toast('삭제했습니다.'); load(); }).catch(function (m) { loading(false); alert(m); });
+    }
+  });
+
+  /* ---------- 미리보기 ---------- */
+  function preview(r) {
+    var ov = document.createElement('div'); ov.className = 'ov';
+    ov.innerHTML = '<div class="dlg wide"><h3>' + esc(r.num + '번 ' + r.name) + ' — ' + esc(r.status + ' ' + r.detail.join('·')) + '</h3><p class="help">접수번호 ' + esc(r.code || r.id) + ' · 제출 ' + esc(r.submitted) + '</p>' +
+      '<div class="pv-host" id="pv"></div><div id="atts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>' +
+      '<div class="dlg-btns"><button class="btn" id="x">닫기</button><button class="btn" id="cf">확인서 작성</button><button class="btn pri" id="pr">이 신고서 인쇄</button></div></div>';
+    document.body.appendChild(ov);
+    var pv = $('#pv', ov); pv.innerHTML = AB.render(r, { cfg: CFG, teacherSig: tsig }); AB.fit(pv);
+    if (r.files.length) {
+      $('#atts', ov).textContent = '증빙사진 불러오는 중…';
+      call('getAttachments', PW, r.files).then(function (list) {
+        $('#atts', ov).innerHTML = list.map(function (a) { return a.dataUrl ? '<a href="' + a.dataUrl + '" target="_blank"><img src="' + a.dataUrl + '" style="height:120px;border:1px solid #e2e8f0;border-radius:8px"></a>' : '<span>불러오기 실패</span>'; }).join('');
+      });
+    }
+    $('#x', ov).onclick = function () { ov.remove(); };
+    $('#cf', ov).onclick = function () { ov.remove(); confirmDlg([r]); };
+    $('#pr', ov).onclick = function () { ov.remove(); printSheets([r]); };
+    ov.addEventListener('click', function (e) { if (e.target === ov) ov.remove(); });
+  }
+
+  /* ---------- 확인서 작성 (개별 / 일괄) ---------- */
+  function confirmDlg(list) {
+    var one = list.length === 1 ? list[0] : null, c = (one && one.confirm) || {};
+    var key = c.method || 'na', rw = (c.rows && c.rows[key]) || {};
+    var now = new Date(), td = CFG.today.split('-');
+    var ov = document.createElement('div'); ov.className = 'ov';
+    ov.innerHTML = '<div class="dlg"><h3>확인서 작성' + (one ? ' — ' + esc(one.num + '번 ' + one.name) : ' (' + list.length + '건 일괄)') + '</h3>' +
+      '<p class="help">' + (one ? '' : '선택한 신고서 모두에 같은 확인 정보가 기록됩니다. ') + '저장하면 담임 서명이 확인서에 표시됩니다.</p>' +
+      '<div class="frm"><span>확인방법</span><div class="seg">' +
+      [['ga', '가정방문'], ['na', '전화연락'], ['da', '기타']].map(function (m) { return '<label><input type="radio" name="m" value="' + m[0] + '"' + (key === m[0] ? ' checked' : '') + '>' + m[1] + '</label>'; }).join('') + '</div>' +
+      '<span>확인 일시</span><div class="row3"><input type="number" id="cm" min="1" max="12" value="' + esc(rw.m || +td[1]) + '">월 <input type="number" id="cd" min="1" max="31" value="' + esc(rw.d || +td[2]) + '">일 <input type="number" id="ch" min="0" max="24" value="' + esc(rw.h || now.getHours()) + '">시</div>' +
+      '<span>대화자 성명</span><div>' + (one ? '<input type="text" id="who" value="' + esc(rw.who || one.pname || '') + '" placeholder="보호자 성명">'
+        : '<label style="font-size:14px"><input type="checkbox" id="autoWho" checked> 각 학생의 보호자 성명 자동 입력</label><input type="text" id="who" placeholder="직접 입력 (자동 입력 해제 시)" style="margin-top:6px">') + '</div>' +
+      '<span>첨부</span><div>' + (one ? '<input type="text" id="att" value="' + esc(c.attach != null ? c.attach : (one.files.length ? '증빙서류 ' + one.files.length + '매' : '')) + '" placeholder="예) 진단서 1부">'
+        : '<label style="font-size:14px"><input type="checkbox" id="autoAtt" checked> 증빙사진 수로 자동 입력 (예: 증빙서류 1매)</label>') + '</div>' +
+      '<span>확인일</span><input type="date" id="cdate" value="' + esc(c.date || CFG.today) + '"></div>' +
+      (tsig ? '' : '<p style="color:#b45309;font-size:13.5px;margin:12px 0 0">※ 담임 서명이 아직 등록되지 않았습니다. 상단 \'담임 서명 등록\'을 먼저 하면 확인서에 서명이 찍힙니다.</p>') +
+      '<div class="dlg-btns">' + (one && one.confirm ? '<button class="btn bad" id="clr" style="margin-right:auto">확인서 비우기</button>' : '') +
+      '<button class="btn" id="x">취소</button><button class="btn pri" id="ok">저장</button></div></div>';
+    document.body.appendChild(ov);
+    $('#x', ov).onclick = function () { ov.remove(); };
+    if ($('#clr', ov)) $('#clr', ov).onclick = function () { var m = {}; m[one.id] = null; send(m); };
+    $('#ok', ov).onclick = function () {
+      var method = $('input[name=m]:checked', ov).value, map = {};
+      list.forEach(function (r) {
+        var who = one ? $('#who', ov).value.trim() : ($('#autoWho', ov).checked ? r.pname : $('#who', ov).value.trim());
+        var att = one ? $('#att', ov).value.trim() : ($('#autoAtt', ov).checked ? (r.files.length ? '증빙서류 ' + r.files.length + '매' : '') : '');
+        var rows = {}; rows[method] = { m: $('#cm', ov).value, d: $('#cd', ov).value, h: $('#ch', ov).value, who: who };
+        map[r.id] = { method: method, rows: rows, attach: att, date: $('#cdate', ov).value };
+      });
+      send(map);
+    };
+    function send(map) {
+      loading(true, '저장 중…');
+      call('saveConfirms', PW, map).then(function (n) { loading(false); ov.remove(); toast(n + '건 저장했습니다.'); load(); }).catch(function (m) { loading(false); alert(m); });
+    }
+  }
+
+  /* ---------- 담임 서명 ---------- */
+  function regSig() {
+    AB.signPad({ title: '담임 서명 등록 — ' + CFG.teacher, sub: '한 번 등록하면 확인서의 "학급담임 (인)" 자리에 자동으로 들어갑니다.', onDone: function (url) {
+      loading(true, '저장 중…');
+      call('saveTeacherSig', PW, url).then(function () { tsig = url; loading(false); draw(); toast('담임 서명을 등록했습니다.'); }).catch(function (m) { loading(false); alert(m); });
+    } });
+  }
+
+  /* ---------- 인쇄 ---------- */
+  function printSheets(list) {
+    var withAtt = $('#withAtt') && $('#withAtt').checked;
+    var ids = withAtt ? list.reduce(function (a, r) { return a.concat(r.files); }, []) : [];
+    var go = function (att) {
+      var map = {}; (att || []).forEach(function (a) { map[a.id] = a.dataUrl; });
+      var h = '';
+      list.forEach(function (r) {
+        h += AB.render(r, { cfg: CFG, teacherSig: tsig });
+        if (withAtt) r.files.forEach(function (f, i) {
+          if (map[f]) h += '<div class="att-page"><div class="cap">[증빙서류] ' + esc(r.num + '번 ' + r.name + ' · ' + r.start + ' ~ ' + r.end + ' · ' + (i + 1) + '/' + r.files.length) + '</div><div class="imgw"><img src="' + map[f] + '"></div></div>';
+        });
+      });
+      doPrint(h);
+    };
+    if (ids.length) { loading(true, '증빙사진 불러오는 중…'); call('getAttachments', PW, ids).then(function (a) { loading(false); go(a); }).catch(function (m) { loading(false); alert(m); }); }
+    else go([]);
+  }
+  function printSummary() {
+    if (!items.length) return toast('집계할 항목이 없습니다.');
+    var ym = $('#ym').value.split('-'), basis = $('#basis').value;
+    var title = basis === 'all' ? '출결신고서 제출 현황 (전체)' : ym[0] + '년 ' + (+ym[1]) + '월 출결신고서 제출 현황';
+    var h = '<div class="sum-page"><h2>' + esc(title) + '</h2><div class="meta">' + esc(CFG.school + ' ' + CFG.grade + '학년 ' + CFG.cls + '반 · 담임 ' + CFG.teacher + ' · 출력일 ' + CFG.today) + '</div>' +
+      '<table><thead><tr><th style="width:9mm">번호</th><th style="width:16mm">성명</th><th style="width:14mm">출결현황</th><th style="width:16mm">세부사항</th><th style="width:30mm">기간</th><th style="width:9mm">일수</th><th>사유</th><th style="width:10mm">증빙</th><th style="width:14mm">확인</th></tr></thead><tbody>' +
+      items.map(function (r) {
+        return '<tr><td>' + esc(r.num) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.status) + '</td><td>' + esc(r.detail.join(',')) + '</td><td>' + esc(r.start + (r.end !== r.start ? ' ~ ' + r.end.slice(5) : '')) + '</td><td>' + esc(r.days) + '</td><td class="l">' + esc(r.reason) + '</td><td>' + (r.files.length || '-') + '</td><td>' + (r.state === '확인완료' ? '완료' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    doPrint(h);
+  }
+  function doPrint(html) {
+    var p = $('#print'); p.innerHTML = html;
+    var imgs = p.querySelectorAll('img'), left = imgs.length;
+    var fire = function () { setTimeout(function () { window.print(); }, 150); };
+    if (!left) return fire();
+    imgs.forEach(function (im) { if (im.complete) { if (!--left) fire(); } else im.onload = im.onerror = function () { if (!--left) fire(); }; });
+  }
+
+  loading(true, '불러오는 중…');
+  call('currentTeacher').then(function (who) { if (who) entered({ sheetUrl: API.mode === 'firebase' ? 'https://console.firebase.google.com/project/' + CFG.firebase.projectId + '/firestore/data' : '' }); else { loading(false); loginView(); } }).catch(function (m) { loading(false); loginView(m); });
+})();
+</script>
+</body>
+</html>

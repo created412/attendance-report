@@ -1,0 +1,40 @@
+rules_version = '2';
+// 학생(로그인 없음): 신고서 "제출"만 가능, 읽기·수정 불가
+// 교사(아래 이메일로 로그인): 조회·확인서 작성·삭제 가능
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function isTeacher() {
+      return request.auth != null && request.auth.token.email == 'TEACHER_EMAIL';
+    }
+    function str(v, n) { return v is string && v.size() <= n; }
+
+    match /reports/{rid} {
+      allow create: if request.resource.data.keys().hasOnly(
+            ['status', 'detail', 'num', 'name', 'start', 'end', 'days', 'reason', 'wdate', 'pname',
+             'sigS', 'sigP', 'fileCount', 'code', 'state', 'confirm', 'submitted'])
+        && request.resource.data.status in ['질병', '미인정', '인정', '기타']
+        && request.resource.data.detail is list && request.resource.data.detail.size() <= 4
+        && str(request.resource.data.num, 3) && str(request.resource.data.name, 20)
+        && str(request.resource.data.start, 10) && str(request.resource.data.end, 10)
+        && str(request.resource.data.days, 3) && str(request.resource.data.reason, 120)
+        && str(request.resource.data.wdate, 10) && str(request.resource.data.pname, 20)
+        && str(request.resource.data.sigS, 60000) && str(request.resource.data.sigP, 60000)
+        && request.resource.data.fileCount is int && request.resource.data.fileCount <= 3
+        && request.resource.data.state == '접수' && request.resource.data.confirm == null
+        && request.resource.data.submitted == request.time;
+      allow read, update, delete: if isTeacher();
+
+      match /files/{fid} {
+        allow create: if fid in ['0', '1', '2']
+          && exists(/databases/$(db)/documents/reports/$(rid))
+          && request.resource.data.keys().hasOnly(['dataUrl'])
+          && str(request.resource.data.dataUrl, 1000000);
+        allow read, delete: if isTeacher();
+      }
+    }
+
+    match /settings/{doc} {
+      allow read, write: if isTeacher();
+    }
+  }
+}
