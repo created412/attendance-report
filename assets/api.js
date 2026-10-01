@@ -65,7 +65,8 @@ if (C.firebase && C.firebase.apiKey) {
       });
       items.sort(byNum);
       const s = await fs.getDoc(fs.doc(db, 'settings', 'teacher'));
-      return { items, teacherSig: s.exists() ? s.data().sig || '' : '' };
+      const t = s.exists() ? s.data() : {};
+      return { items, teacherSig: t.sig || '', teacherName: t.name || '' };
     }),
     saveConfirms: wrap(async (_, map) => {
       const b = fs.writeBatch(db); let n = 0;
@@ -82,7 +83,8 @@ if (C.firebase && C.firebase.apiKey) {
       try { const s = await fs.getDoc(fs.doc(db, 'reports', rid, 'files', n)); return { id, dataUrl: s.exists() ? s.data().dataUrl : '' }; }
       catch (e) { return { id, error: String(e) }; }
     }))),
-    saveTeacherSig: wrap(async (_, url) => { await fs.setDoc(fs.doc(db, 'settings', 'teacher'), { sig: url || '' }); return true; })
+    saveTeacherSig: wrap(async (_, url) => { await fs.setDoc(fs.doc(db, 'settings', 'teacher'), { sig: url || '' }, { merge: true }); return true; }),
+    saveTeacherName: wrap(async (_, name) => { await fs.setDoc(fs.doc(db, 'settings', 'teacher'), { name: String(name || '').trim().slice(0, 20) }, { merge: true }); return true; })
   };
 } else {
   /* 체험 모드: 이 브라우저에만 저장 (교사 비밀번호 1234) */
@@ -106,12 +108,13 @@ if (C.firebase && C.firebase.apiKey) {
     listReports: async (_, ym, basis) => {
       auth();
       const items = all().map((r) => ({ ...r, files: Array.from({ length: r.fileCount || 0 }, (_, i) => `${r.id}/${i}`) })).filter((r) => inMonth(r, ym, basis)).sort(byNum);
-      return { items, teacherSig: localStorage.getItem(S) || '' };
+      return { items, teacherSig: localStorage.getItem(S) || '', teacherName: localStorage.getItem('demo-tname') || '' };
     },
     saveConfirms: async (_, map) => { auth(); const a = all(); let n = 0; a.forEach((r) => { if (r.id in map) { r.confirm = map[r.id] || null; r.state = map[r.id] ? '확인완료' : '접수'; n++; } }); put(a); return n; },
     deleteReport: async (_, id) => { auth(); put(all().filter((r) => r.id !== id)); return true; },
     getAttachments: async (_, ids) => (ids || []).map((id) => ({ id, dataUrl: localStorage.getItem('demo-file-' + id) || '' })),
-    saveTeacherSig: async (_, url) => { auth(); localStorage.setItem(S, url || ''); return true; }
+    saveTeacherSig: async (_, url) => { auth(); localStorage.setItem(S, url || ''); return true; },
+    saveTeacherName: async (_, name) => { auth(); localStorage.setItem('demo-tname', String(name || '').trim().slice(0, 20)); return true; }
   };
 }
 window.API = API;

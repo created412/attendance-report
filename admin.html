@@ -111,7 +111,8 @@ var CFG = APP_CFG;
 (function () {
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var esc = AB.esc, PW = '', items = [], tsig = '', sel = {};
-  $('#sub').textContent = CFG.school + ' ' + CFG.grade + '학년 ' + CFG.cls + '반 · 담임 ' + CFG.teacher;
+  function setSub() { $('#sub').textContent = CFG.school + ' ' + CFG.grade + '학년 ' + CFG.cls + '반' + (CFG.teacher ? ' · 담임 ' + CFG.teacher : ''); }
+  setSub();
 
   function call(fn) {
     var args = Array.prototype.slice.call(arguments, 1);
@@ -166,16 +167,20 @@ var CFG = APP_CFG;
   function load() {
     loading(true);
     call('listReports', PW, $('#ym').value, $('#basis').value).then(function (res) {
-      items = res.items; tsig = res.teacherSig; sel = {}; loading(false); draw();
+      items = res.items; tsig = res.teacherSig; if (res.teacherName) CFG.teacher = res.teacherName; setSub(); sel = {}; loading(false); draw();
     }).catch(function (m) { loading(false); if (/권한|로그인/.test(m)) loginView(m); else alert(m); });
   }
   function draw() {
     var ok = items.filter(function (r) { return r.state === '확인완료'; }).length;
     var days = items.reduce(function (a, r) { return a + (+r.days || 0); }, 0);
     $('#stats').innerHTML = stat('제출', items.length + '건') + stat('확인완료', ok + '건') + stat('미확인', (items.length - ok) + '건') + stat('신고 일수 합계', days + '일');
-    $('#sigbox').innerHTML = tsig ? '<img src="' + tsig + '" alt="담임 서명"><button class="btn sm" id="sigBtn">담임 서명 다시 등록</button>'
-      : '<button class="btn" id="sigBtn" style="border-color:#f59e0b;color:#b45309">담임 서명 등록</button>';
+    $('#sigbox').innerHTML = '<label>담임 이름 <input type="text" id="tname" maxlength="20" placeholder="이름 입력" value="' + esc(CFG.teacher || '') + '" style="height:38px;width:96px;border:1px solid ' + (CFG.teacher ? '#cbd5e1' : '#f59e0b') + ';border-radius:9px;padding:0 8px;font-size:14px"></label><button class="btn sm" id="tnameBtn">저장</button>' + (tsig ? '<img src="' + tsig + '" alt="담임 서명"><button class="btn sm" id="sigBtn">담임 서명 다시 등록</button>'
+      : '<button class="btn" id="sigBtn" style="border-color:#f59e0b;color:#b45309">담임 서명 등록</button>');
     $('#sigBtn').onclick = regSig;
+    $('#tnameBtn').onclick = function () {
+      var v = $('#tname').value.trim(); loading(true, '저장 중…');
+      call('saveTeacherName', PW, v).then(function () { CFG.teacher = v; setSub(); loading(false); draw(); toast('담임 이름을 저장했습니다.'); }).catch(function (m) { loading(false); alert(m); });
+    };
     if (!items.length) { $('#list').innerHTML = '<div class="empty">해당 기간에 제출된 신고서가 없습니다.</div>'; return; }
     $('#list').innerHTML = '<table class="list"><thead><tr><th><input type="checkbox" id="all" aria-label="전체 선택"></th><th>번호</th><th>성명</th><th>출결현황</th><th>세부사항</th><th>기간</th><th>일수</th><th>사유</th><th>증빙</th><th>제출일시</th><th>상태</th><th></th></tr></thead><tbody>' +
       items.map(function (r, i) {
@@ -265,7 +270,7 @@ var CFG = APP_CFG;
 
   /* ---------- 담임 서명 ---------- */
   function regSig() {
-    AB.signPad({ title: '담임 서명 등록 — ' + CFG.teacher, sub: '한 번 등록하면 확인서의 "학급담임 (인)" 자리에 자동으로 들어갑니다.', onDone: function (url) {
+    AB.signPad({ title: '담임 서명 등록' + (CFG.teacher ? ' — ' + CFG.teacher : ''), sub: '한 번 등록하면 확인서의 "학급담임 (인)" 자리에 자동으로 들어갑니다.', onDone: function (url) {
       loading(true, '저장 중…');
       call('saveTeacherSig', PW, url).then(function () { tsig = url; loading(false); draw(); toast('담임 서명을 등록했습니다.'); }).catch(function (m) { loading(false); alert(m); });
     } });
@@ -293,7 +298,7 @@ var CFG = APP_CFG;
     if (!items.length) return toast('집계할 항목이 없습니다.');
     var ym = $('#ym').value.split('-'), basis = $('#basis').value;
     var title = basis === 'all' ? '출결신고서 제출 현황 (전체)' : ym[0] + '년 ' + (+ym[1]) + '월 출결신고서 제출 현황';
-    var h = '<div class="sum-page"><h2>' + esc(title) + '</h2><div class="meta">' + esc(CFG.school + ' ' + CFG.grade + '학년 ' + CFG.cls + '반 · 담임 ' + CFG.teacher + ' · 출력일 ' + CFG.today) + '</div>' +
+    var h = '<div class="sum-page"><h2>' + esc(title) + '</h2><div class="meta">' + esc(CFG.school + ' ' + CFG.grade + '학년 ' + CFG.cls + '반' + (CFG.teacher ? ' · 담임 ' + CFG.teacher : '') + ' · 출력일 ' + CFG.today) + '</div>' +
       '<table><thead><tr><th style="width:9mm">번호</th><th style="width:16mm">성명</th><th style="width:14mm">출결현황</th><th style="width:16mm">세부사항</th><th style="width:30mm">기간</th><th style="width:9mm">일수</th><th>사유</th><th style="width:10mm">증빙</th><th style="width:14mm">확인</th></tr></thead><tbody>' +
       items.map(function (r) {
         return '<tr><td>' + esc(r.num) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.status) + '</td><td>' + esc(r.detail.join(',')) + '</td><td>' + esc(r.start + (r.end !== r.start ? ' ~ ' + r.end.slice(5) : '')) + '</td><td>' + esc(r.days) + '</td><td class="l">' + esc(r.reason) + '</td><td>' + (r.files.length || '-') + '</td><td>' + (r.state === '확인완료' ? '완료' : '') + '</td></tr>';

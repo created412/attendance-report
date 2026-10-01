@@ -128,7 +128,7 @@ var CFG = APP_CFG;
   var isReq = function (k) { var f = byKey[k]; return !(f.optional && f.optional()); };
   var missing = function () { return FIELDS.filter(function (f) { return isReq(f.k) && isEmpty(f.k); }); };
 
-  $('#sub').textContent = CFG.school + ' ' + CFG.grade + '학년 ' + CFG.cls + '반 · 담임 ' + CFG.teacher;
+  $('#sub').textContent = CFG.school + ' ' + CFG.grade + '학년 ' + CFG.cls + '반' + (CFG.teacher ? ' · 담임 ' + CFG.teacher : '');
   apiReady.then(function (api) {
     if (api.mode !== 'demo') return;
     var b = document.createElement('div');

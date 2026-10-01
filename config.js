@@ -3,7 +3,7 @@ window.APP_CONFIG = {
   school: '양지고등학교',
   grade: 2,
   cls: 10,
-  teacher: '강미희',
+  teacher: '',          // 비워 두면 교사 화면에서 입력 (확인서 '학급담임' 칸)
 
   // 교사 화면에 로그인할 이메일 (Firebase Authentication 에 등록한 계정)
   teacherEmail: '',
