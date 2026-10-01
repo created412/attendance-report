@@ -22,7 +22,7 @@ service cloud.firestore {
         && str(request.resource.data.sname, 20)
         && str(request.resource.data.sigS, 60000) && str(request.resource.data.sigP, 60000)
         && request.resource.data.fileCount is int && request.resource.data.fileCount <= 3
-        && request.resource.data.state == '접수' && request.resource.data.confirm == null
+        && request.resource.data.state == '접수' && (request.resource.data.confirm == null || request.resource.data.confirm is map)
         && request.resource.data.submitted == request.time;
       allow read, update, delete: if isTeacher();
 

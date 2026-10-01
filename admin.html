@@ -238,7 +238,7 @@ var CFG = APP_CFG;
       '<div class="pv-host" id="pv"></div><div id="atts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>' +
       '<div class="dlg-btns"><button class="btn" id="x">닫기</button><button class="btn" id="cf">확인서 작성</button><button class="btn pri" id="pr">이 신고서 인쇄</button></div></div>';
     document.body.appendChild(ov);
-    var pv = $('#pv', ov); pv.innerHTML = AB.render(r, { cfg: CFG, teacherSig: tsig }); AB.fit(pv);
+    var pv = $('#pv', ov); pv.innerHTML = AB.render(r, { cfg: CFG, teacherSig: r.state === '확인완료' ? tsig : '' }); AB.fit(pv);
     if (r.files.length) {
       $('#atts', ov).textContent = '증빙사진 불러오는 중…';
       call('getAttachments', PW, r.files).then(function (list) {
@@ -404,7 +404,7 @@ var CFG = APP_CFG;
       var map = {}; (att || []).forEach(function (a) { map[a.id] = a.dataUrl; });
       var h = '';
       list.forEach(function (r) {
-        h += AB.render(r, { cfg: CFG, teacherSig: tsig });
+        h += AB.render(r, { cfg: CFG, teacherSig: r.state === '확인완료' ? tsig : '' });
         if (withAtt) r.files.forEach(function (f, i) {
           if (map[f]) h += '<div class="att-page"><div class="cap">[증빙서류] ' + esc(r.num + '번 ' + r.name + ' · ' + r.start + ' ~ ' + r.end + ' · ' + (i + 1) + '/' + r.files.length) + '</div><div class="imgw"><img src="' + map[f] + '"></div></div>';
         });

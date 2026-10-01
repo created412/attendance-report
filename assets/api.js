@@ -10,7 +10,12 @@ function clean(rec) {
     status: s(rec.status, 10), detail: (rec.detail || []).map((d) => s(d, 10)).slice(0, 4),
     grade: s(rec.grade, 2), cls: s(rec.cls, 2), num: s(rec.num, 3), name: s(rec.name, 20), start: s(rec.start, 10), end: s(rec.end, 10), days: s(rec.days, 3),
     reason: s(rec.reason, 120), wdate: s(rec.wdate, 10), sname: s(rec.sname, 20), pname: s(rec.pname, 20),
-    sigS: String(rec.sigS || ''), sigP: String(rec.sigP || '')
+    sigS: String(rec.sigS || ''), sigP: String(rec.sigP || ''),
+    confirm: (function () {
+      const code = { '가. 가정방문': 'ga', '나. 전화연락': 'na', '다. 기타': 'da' }[rec.c_method];
+      if (!code) return null;
+      return { method: code, rows: { [code]: { m: s(rec.c_m, 2), d: s(rec.c_d, 2), h: s(rec.c_h, 2), who: s(rec.c_who, 20) } }, attach: s(rec.c_attach, 30), date: s(rec.c_date, 10) };
+    })()
   };
 }
 function inMonth(r, ym, basis) {
@@ -44,7 +49,7 @@ if (C.firebase && C.firebase.apiKey) {
     submitReport: wrap(async (rec, files) => {
       const r = clean(rec), list = (files || []).slice(0, 3), code = makeCode();
       const ref = fs.doc(fs.collection(db, 'reports'));
-      await fs.setDoc(ref, { ...r, fileCount: list.length, code, state: '접수', confirm: null, submitted: fs.serverTimestamp() });
+      await fs.setDoc(ref, { ...r, fileCount: list.length, code, state: '접수', submitted: fs.serverTimestamp() });
       for (let i = 0; i < list.length; i++) await fs.setDoc(fs.doc(db, 'reports', ref.id, 'files', String(i)), { dataUrl: list[i].dataUrl });
       return { id: code, time: fmt(new Date()), name: r.name, files: list.length };
     }),
@@ -98,7 +103,7 @@ if (C.firebase && C.firebase.apiKey) {
       const a = all(), r = clean(rec), code = makeCode(), id = 'd' + Date.now();
       const list = (files || []).slice(0, 3);
       list.forEach((f, i) => localStorage.setItem(`demo-file-${id}/${i}`, f.dataUrl));
-      a.push({ ...r, id, code, state: '접수', confirm: null, submitted: fmt(new Date()), fileCount: list.length });
+      a.push({ ...r, id, code, state: '접수', submitted: fmt(new Date()), fileCount: list.length });
       try { put(a); } catch (e) { throw new Error('체험 모드 저장 공간이 부족합니다.'); }
       return { id: code, time: fmt(new Date()), name: r.name, files: list.length };
     },

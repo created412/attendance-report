@@ -161,7 +161,7 @@ var BOX=[[129.48, 87.88, 4.11], [148.02, 87.88, 4.11], [162.45, 87.88, 4.11], [1
           box('cf:' + m + ':h', 77.6, b, 9.8, !v.h, { label: '시' }) + box('cf:' + m + ':who', 115.3, b, 31, !v.who, { label: '대화자 성명' });
       }
     });
-    h += box('cf:attach', 40.2, 242.19, 146, !c.attach, { label: '첨부' });
+    h += box('cf:attach', 40.2, 242.19, 146, !c.attach && !o.attachOptional, { label: '첨부' });
     h += box('cf:date', 86.4, 252.05, 37.4, !c.date, { label: '확인일' });
     return h;
   }

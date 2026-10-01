@@ -105,12 +105,26 @@ var CFG = APP_CFG;
 (function () {
   var $ = function (s) { return document.querySelector(s); };
   var DRAFT_KEY = 'absence-draft-v2';   // v1(작성일 자동입력 시절) 임시저장은 무시
-  var blank = function () { return { status: '', detail: [], grade: '', cls: '', num: '', name: '', start: '', end: '', days: '', reason: '', wdate: '', sname: '', pname: '', sigS: '', sigP: '' }; };
-  var rec = blank(), files = [], guided = false, cur = null, daysAuto = true;
+  var blank = function () { return { status: '', detail: [], grade: '', cls: '', num: '', name: '', start: '', end: '', days: '', reason: '', wdate: '', c_method: '', c_m: '', c_d: '', c_h: '', c_who: '', c_attach: '', c_date: '', sname: '', pname: '', sigS: '', sigP: '' }; };
+  var rec = blank(), files = [], queue = [], guided = false, cur = null, daysAuto = true;
   try { localStorage.removeItem('absence-draft-v1'); } catch (e) {}
   try { var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (d && d.rec) { rec = Object.assign(blank(), d.rec); daysAuto = d.daysAuto !== false; } } catch (e) {}
 
   var parentOptional = function () { return rec.status === '미인정'; };
+  var CM_CODE = { '가. 가정방문': 'ga', '나. 전화연락': 'na', '다. 기타': 'da' }, CM_LABEL = { ga: '가. 가정방문', na: '나. 전화연락', da: '다. 기타' };
+  function confirmObj(x) {
+    x = x || rec;
+    var m = CM_CODE[x.c_method] || '', rows = {};
+    if (m) rows[m] = { m: x.c_m, d: x.c_d, h: x.c_h, who: x.c_who };
+    return { method: m, rows: rows, attach: x.c_attach, date: x.c_date };
+  }
+  function curKey() {
+    if (!cur || cur.indexOf('c_') !== 0) return cur;
+    if (cur === 'c_attach') return 'cf:attach';
+    if (cur === 'c_date') return 'cf:date';
+    if (cur === 'c_method') return null;
+    return 'cf:' + (CM_CODE[rec.c_method] || '') + ':' + cur.slice(2);
+  }
   var FIELDS = [
     { k: 'status', label: '출결현황', type: 'choice', opts: ['질병', '미인정', '인정', '기타'], help: '해당하는 항목 하나를 고르세요.' },
     { k: 'detail', label: '세부사항', type: 'multi', opts: ['결석', '지각', '조퇴', '결과'], help: '해당하는 항목을 모두 고르세요.' },
@@ -123,6 +137,13 @@ var CFG = APP_CFG;
     { k: 'days', label: '기간 — 일수', type: 'number', help: '주말을 빼고 자동 계산했습니다. 공휴일 등이 있으면 고쳐 주세요.' },
     { k: 'reason', label: '사유 (구체적으로)', type: 'textarea', max: 80, help: '예) 고열과 복통으로 ○○병원 진료 후 가정에서 안정을 취함' },
     { k: 'wdate', label: '작성일', type: 'date', help: '신고서를 작성하는 날짜' },
+    { k: 'c_method', label: '확인서 — 확인방법', type: 'choice', opts: ['가. 가정방문', '나. 전화연락', '다. 기타'], help: '하나를 고르면 그 줄의 오른쪽 빈칸(월·일·시·대화자 성명)을 채웁니다.' },
+    { k: 'c_m', label: '확인서 — 월', type: 'number', help: '확인한 날짜의 월' },
+    { k: 'c_d', label: '확인서 — 일', type: 'number', help: '확인한 날짜의 일' },
+    { k: 'c_h', label: '확인서 — 시', type: 'number', help: '확인한 시각 (0~24)' },
+    { k: 'c_who', label: '확인서 — 대화자 성명', type: 'text', max: 10, help: '확인할 때 대화한 사람의 성명' },
+    { k: 'c_attach', label: '확인서 — 첨부', type: 'text', max: 30, optional: function () { return true; }, help: '첨부 서류가 있으면 적으세요. (예: 진단서 1부) 없으면 비워 두세요.' },
+    { k: 'c_date', label: '확인서 — 날짜', type: 'date', help: '확인서 아래의 "    년   월   일"에 들어갈 날짜' },
     { k: 'sname', label: '학생 성명 (서명란)', type: 'text', max: 10, help: '서명란의 "학  생 :" 옆에 들어갈 이름을 직접 입력하세요.' },
     { k: 'sigS', label: '학생 서명', type: 'sign' },
     { k: 'pname', label: '보호자 성명', type: 'text', max: 10, optional: parentOptional, help: '서명할 보호자의 성명을 입력하세요. (미인정인 경우 생략 가능)' },
@@ -145,7 +166,7 @@ var CFG = APP_CFG;
   function save() { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ rec: rec, daysAuto: daysAuto })); } catch (e) {} }
   function render() {
     var host = $('#paperHost');
-    host.innerHTML = AB.render(rec, { cfg: CFG, editable: true, cur: cur, required: isReq });
+    host.innerHTML = AB.render(Object.assign({}, rec, { confirm: confirmObj() }), { cfg: CFG, editable: true, confirmEdit: true, attachOptional: true, cur: curKey(), required: isReq });
     AB.fit(host);
     var req = FIELDS.filter(function (f) { return isReq(f.k); });
     var done = req.filter(function (f) { return !isEmpty(f.k); }).length;
@@ -160,6 +181,13 @@ var CFG = APP_CFG;
   $('#paperHost').addEventListener('click', function (e) {
     var b = e.target.closest('[data-k]'); if (!b) return;
     var k = b.dataset.k, v = b.dataset.v;
+    if (k.indexOf('cm:') === 0) {   // 확인방법 선택 → 그 줄 빈칸 차례로 입력
+      rec.c_method = CM_LABEL[k.slice(3)]; guided = false; render();
+      var rest = ['c_m', 'c_d', 'c_h', 'c_who'].filter(isEmpty);
+      if (rest.length) { queue = rest.slice(1); open(rest[0]); }
+      return;
+    }
+    if (k.indexOf('cf:') === 0) { var p = k.split(':'); k = p[1] === 'attach' ? 'c_attach' : p[1] === 'date' ? 'c_date' : 'c_' + p[2]; }
     guided = false;
     if (k === 'status') { rec.status = rec.status === v ? '' : v; render(); return; }
     if (k === 'detail') { var i = rec.detail.indexOf(v); i >= 0 ? rec.detail.splice(i, 1) : rec.detail.push(v); render(); return; }
@@ -172,6 +200,7 @@ var CFG = APP_CFG;
   };
   function next() {
     cur = null;
+    if (queue.length) { open(queue.shift()); return; }
     if (!guided) { render(); return; }
     var m = missing();
     if (m.length) { open(m[0].k); return; }
@@ -238,7 +267,7 @@ var CFG = APP_CFG;
       };
     });
     function close() { ov.remove(); }
-    ov.querySelector('#cc').onclick = function () { close(); guided = false; cur = null; render(); };
+    ov.querySelector('#cc').onclick = function () { close(); guided = false; queue = []; cur = null; render(); };
     ov.addEventListener('click', function (e) { if (e.target === ov) ov.querySelector('#cc').click(); });
     var ok = ov.querySelector('#ok');
     if (ok) ok.onclick = function () {
@@ -246,7 +275,7 @@ var CFG = APP_CFG;
       if (f.type === 'multi') { if (!picked.length) { er.textContent = '하나 이상 골라 주세요.'; return; } rec[k] = AB.DETAIL.map(function (d) { return d[0]; }).filter(function (d) { return picked.indexOf(d) >= 0; }); close(); next(); return; }
       val = inp.value.trim();
       if (!val) { er.textContent = '내용을 입력해 주세요.'; return; }
-      if (f.type === 'number') { val = val.replace(/[^0-9]/g, ''); if (!val || +val < 1 || +val > 99) { er.textContent = '숫자를 바르게 입력해 주세요.'; return; } val = String(+val); }
+      if (f.type === 'number') { val = val.replace(/[^0-9]/g, ''); if (!val || +val > 99 || (+val < 1 && k !== 'c_h')) { er.textContent = '숫자를 바르게 입력해 주세요.'; return; } val = String(+val); }
       if (k === 'end' && rec.start && val < rec.start) { er.textContent = '종료일이 시작일보다 빠릅니다.'; return; }
       if (k === 'start' && rec.end && val > rec.end) rec.end = '';
       if (k === 'days') daysAuto = val === weekdays(rec.start, rec.end);
@@ -292,6 +321,7 @@ var CFG = APP_CFG;
     var rows = [['출결현황', rec.status], ['세부사항', rec.detail.join(', ')], ['학생', rec.grade + '학년 ' + rec.cls + '반 ' + rec.num + '번 ' + rec.name],
       ['기간', rec.start + ' ~ ' + rec.end + ' (' + rec.days + '일간)'], ['사유', rec.reason], ['작성일', rec.wdate],
       ['학생 서명', AB.esc(rec.sname) + ' <img src="' + rec.sigS + '" alt="">'], ['보호자', (rec.pname || '(생략)') + (rec.sigP ? ' <img src="' + rec.sigP + '" alt="">' : '')],
+      ['확인서', rec.c_method + ' (' + rec.c_m + '월 ' + rec.c_d + '일 ' + rec.c_h + '시, 대화자 ' + rec.c_who + ')' + (rec.c_attach ? ' / 첨부: ' + rec.c_attach : '') + ' / ' + rec.c_date],
       ['증빙사진', files.length ? files.length + '장' : '없음']];
     ov.innerHTML = '<div class="ms" role="dialog" aria-modal="true"><small>최종 확인</small><h3>입력하신 내용이 맞습니까?</h3>' +
       '<p class="help">제출 후에는 수정할 수 없습니다. 잘못 제출했다면 담임선생님께 말씀드리세요.</p><table class="sum">' +
@@ -319,7 +349,7 @@ var CFG = APP_CFG;
       '<tr><th>기간</th><td>' + AB.esc(done.start + ' ~ ' + done.end) + '</td></tr><tr><th>증빙사진</th><td>' + res.files + '장</td></tr></table>' +
       '<p style="font-size:13px;color:#64748b">이 화면을 캡처해 두면 제출 확인용으로 쓸 수 있습니다.</p>' +
       '<div class="ms-btns"><button class="btn grow" id="see">제출한 신고서 보기</button><button class="btn pri grow" id="again">새로 작성</button></div></div><div id="copy"></div>';
-    $('#see').onclick = function () { var c = $('#copy'); c.className = 'paper-host'; c.innerHTML = AB.render(done, { cfg: CFG }); AB.fit(c); c.scrollIntoView({ behavior: 'smooth' }); };
+    $('#see').onclick = function () { var c = $('#copy'); c.className = 'paper-host'; c.innerHTML = AB.render(Object.assign({}, done, { confirm: confirmObj(done) }), { cfg: CFG }); AB.fit(c); c.scrollIntoView({ behavior: 'smooth' }); };
     $('#again').onclick = function () { location.reload(); };
     window.scrollTo(0, 0);
   }
