@@ -5,7 +5,7 @@
 - 첫 화면: `index.html` — 학생/교사 선택 (교사는 비밀번호 입력 후 입장)
 - 학생 작성: `student.html`
 - 교사 수합: `admin.html` (로그인하지 않으면 비밀번호 화면만 보임)
-- 서버 연결: `config.js` (학교명·학년·반·번호·성명·날짜는 학생이, 담임 이름·확인서는 교사 화면에서 입력)
+- 서버 연결: `config.js` (학교명은 `config.js`에 고정, 학년·반·번호·성명·날짜는 학생이, 담임 이름·확인서는 교사 화면에서 입력)
 - 데이터 보안 규칙: `firestore.rules` (Firebase 콘솔 → Firestore → 규칙에 붙여넣기, `TEACHER_EMAIL`을 담임 이메일로 교체)
 
 `config.js`에 Firebase 설정이 없으면 **체험 모드**로 동작합니다. 이때 제출 내용은 그 기기 브라우저에만 저장되고, 교사 비밀번호는 `1234`입니다. Firebase 연결 후에는 Authentication에 등록한 담임 계정의 비밀번호가 교사 비밀번호가 됩니다(`config.js`의 `teacherEmail`에 그 이메일 입력).

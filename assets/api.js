@@ -9,7 +9,7 @@ function clean(rec) {
   return {
     status: s(rec.status, 10), detail: (rec.detail || []).map((d) => s(d, 10)).slice(0, 4),
     grade: s(rec.grade, 2), cls: s(rec.cls, 2), num: s(rec.num, 3), name: s(rec.name, 20), start: s(rec.start, 10), end: s(rec.end, 10), days: s(rec.days, 3),
-    reason: s(rec.reason, 120), wdate: s(rec.wdate, 10), pname: s(rec.pname, 20), school: s(rec.school, 30),
+    reason: s(rec.reason, 120), wdate: s(rec.wdate, 10), sname: s(rec.sname, 20), pname: s(rec.pname, 20),
     sigS: String(rec.sigS || ''), sigP: String(rec.sigP || '')
   };
 }
