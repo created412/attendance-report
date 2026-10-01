@@ -112,6 +112,7 @@
 <div class="top">
   <div><h1>출결신고서 수합</h1><p id="sub"></p></div>
   <div class="sp"></div>
+  <a href="./">처음으로</a>
   <a id="sheetLink" href="#" target="_blank" rel="noopener" style="display:none">구글 시트 열기</a>
   <button id="logout" style="display:none">로그아웃</button>
 </div>
@@ -138,11 +139,12 @@ var CFG = APP_CFG;
   /* ---------- 로그인 ---------- */
   function loginView(msg) {
     var demo = window.API && API.mode === 'demo';
-    $('#app').innerHTML = '<form class="login" id="lf"><h2>교사 로그인</h2><p>' + (demo ? '체험 모드입니다. 아무 이메일 + 비밀번호 <b>1234</b>' : '담임 계정으로 로그인하세요.') + '</p>' +
-      '<input type="email" id="em" autocomplete="username" placeholder="이메일" value="' + esc(CFG.teacherEmail || '') + '">' +
+    var needEmail = !demo && !CFG.teacherEmail;   // 교사 이메일이 설정돼 있으면 비밀번호만 입력
+    $('#app').innerHTML = '<form class="login" id="lf"><h2>교사 화면</h2><p>' + (demo ? '체험 모드 비밀번호는 <b>1234</b> 입니다.' : '비밀번호를 입력하세요.') + '</p>' +
+      '<input type="' + (needEmail ? 'email' : 'hidden') + '" id="em" autocomplete="username" placeholder="교사 이메일" value="' + esc(CFG.teacherEmail || '') + '">' +
       '<input type="password" id="pw" autocomplete="current-password" placeholder="비밀번호"><div style="color:#b91c1c;font-size:13px;min-height:18px;margin-bottom:6px">' + esc(msg || '') + '</div>' +
-      '<button class="btn pri" style="width:100%;height:46px;font-size:16px">로그인</button></form>';
-    ($('#em').value ? $('#pw') : $('#em')).focus();
+      '<button class="btn pri" style="width:100%;height:46px;font-size:16px">들어가기</button><a href="./" style="display:block;text-align:center;margin-top:14px;font-size:14px;color:#475569">← 처음 화면으로</a></form>';
+    (needEmail ? $('#em') : $('#pw')).focus();
     $('#lf').onsubmit = function (e) { e.preventDefault(); login({ email: $('#em').value.trim(), pw: $('#pw').value }); };
   }
   function entered(res) {
@@ -154,7 +156,7 @@ var CFG = APP_CFG;
     loading(true, '확인 중…');
     call('adminLogin', cred).then(entered).catch(function (m) { loading(false); loginView(m); });
   }
-  $('#logout').onclick = function () { call('logout').then(function () { location.reload(); }); };
+  $('#logout').onclick = function () { call('logout').then(function () { location.href = './'; }); };
 
   /* ---------- 목록 ---------- */
   function mainView() {

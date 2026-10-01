@@ -50,7 +50,7 @@ if (C.firebase && C.firebase.apiKey) {
     }),
     currentTeacher: async () => { const u = await authReady; return isTeacher(auth.currentUser || u) ? (auth.currentUser || u).email : null; },
     adminLogin: wrap(async (cred) => {
-      const { user } = await au.signInWithEmailAndPassword(auth, cred.email, cred.pw);
+      const { user } = await au.signInWithEmailAndPassword(auth, cred.email || C.teacherEmail, cred.pw);
       if (!isTeacher(user)) { await au.signOut(auth); throw new Error('담임 계정이 아닙니다.'); }
       return { ok: true, sheetUrl: `https://console.firebase.google.com/project/${C.firebase.projectId}/firestore/data` };
     }),
@@ -103,7 +103,7 @@ if (C.firebase && C.firebase.apiKey) {
       return { id: code, time: fmt(new Date()), name: r.name, files: list.length };
     },
     currentTeacher: async () => (sessionStorage.getItem('demo-login') === '1' ? 'demo' : null),
-    adminLogin: async (cred) => { if (cred.pw !== '1234') throw new Error('체험 모드 비밀번호는 1234 입니다.'); sessionStorage.setItem('demo-login', '1'); return { ok: true, sheetUrl: '' }; },
+    adminLogin: async (cred) => { if (cred.pw !== '1234') throw new Error('비밀번호가 올바르지 않습니다. (체험 모드: 1234)'); sessionStorage.setItem('demo-login', '1'); return { ok: true, sheetUrl: '' }; },
     logout: async () => sessionStorage.removeItem('demo-login'),
     listReports: async (_, ym, basis) => {
       auth();

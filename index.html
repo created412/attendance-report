@@ -2,329 +2,80 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>출결신고서 작성</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>출결신고서</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/sheet.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
 <script src="config.js"></script>
-<script src="assets/sheet.js"></script>
 <script type="module" src="assets/api.js"></script>
 <style>
-  :root{--pri:#1d4ed8;--pri-d:#1e3a8a;--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#eef2f7;--ok:#047857;--warn:#b45309}
+  :root{--pri:#1d4ed8;--pri-d:#1e3a8a;--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#eef2f7}
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR','Malgun Gothic',-apple-system,sans-serif;-webkit-text-size-adjust:100%}
-  .top{background:var(--pri-d);color:#fff;padding:14px 16px 12px}
-  .top h1{margin:0;font-size:19px;letter-spacing:-.02em}
-  .top p{margin:3px 0 0;font-size:13px;opacity:.85}
-  main{max-width:860px;margin:0 auto;padding:12px 12px 120px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
-  .steps{display:flex;gap:10px;font-size:13.5px;color:var(--sub);line-height:1.45}
-  .steps div{flex:1;display:flex;gap:8px;align-items:flex-start}
-  .steps i{font-style:normal;flex:none;width:22px;height:22px;border-radius:50%;background:#dbeafe;color:var(--pri);font-weight:700;display:grid;place-items:center;font-size:12px;margin-top:1px}
-  .steps b{color:var(--ink)}
-  .prog{display:flex;align-items:center;gap:10px;margin:2px 2px 10px;font-size:13px;color:var(--sub)}
-  .prog .bar{flex:1;height:8px;border-radius:99px;background:#dbe3ee;overflow:hidden}
-  .prog .bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,#3b82f6,var(--pri));transition:width .3s}
-  .prog b{color:var(--ink)}
-  .paper-host{position:relative;width:100%;overflow:hidden;border-radius:6px;box-shadow:0 2px 14px rgba(15,23,42,.14);background:#fff}
-  .hint{font-size:12.5px;color:var(--sub);margin:8px 2px 14px}
-  .attach h2{font-size:15px;margin:0 0 4px}
-  .attach p{font-size:13px;color:var(--sub);margin:0 0 10px;line-height:1.5}
-  .thumbs{display:flex;gap:8px;flex-wrap:wrap}
-  .thumb{position:relative;width:86px;height:86px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
-  .thumb img{width:100%;height:100%;object-fit:cover}
-  .thumb button{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(15,23,42,.75);color:#fff;font-size:14px;cursor:pointer}
-  .addph{width:86px;height:86px;border-radius:10px;border:2px dashed #94a3b8;display:grid;place-items:center;color:var(--sub);font-size:12.5px;text-align:center;cursor:pointer;background:#f8fafc}
-  .dock{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:50}
-  .dock>div{max-width:860px;margin:0 auto;display:flex;gap:8px;width:100%}
-  .btn{height:54px;border-radius:12px;border:1px solid #cbd5e1;background:#fff;color:var(--ink);font-size:16.5px;font-weight:700;cursor:pointer;font-family:inherit;padding:0 14px}
-  .btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
-  .btn:disabled{opacity:.45;cursor:default}
-  .grow{flex:1}
-
-  /* 입력 시트 */
-  .ms-ov{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:900;display:flex;align-items:flex-end;justify-content:center}
-  .ms{background:#fff;width:min(560px,100%);border-radius:18px 18px 0 0;padding:18px 18px calc(16px + env(safe-area-inset-bottom));animation:up .2s ease-out;max-height:92vh;overflow:auto}
-  @media (min-width:700px){.ms-ov{align-items:center}.ms{border-radius:18px}}
-  @keyframes up{from{transform:translateY(30px);opacity:.4}}
-  .ms small{color:var(--pri);font-weight:700;font-size:12.5px}
-  .ms h3{margin:2px 0 4px;font-size:20px}
-  .ms .help{margin:0 0 14px;color:var(--sub);font-size:14px;line-height:1.5}
-  .ms input,.ms textarea{width:100%;font-size:20px;padding:13px 14px;border:2px solid #cbd5e1;border-radius:12px;font-family:inherit;color:var(--ink);background:#fff}
-  .ms textarea{min-height:110px;resize:vertical;font-size:17px;line-height:1.5}
-  .ms input:focus,.ms textarea:focus{outline:0;border-color:var(--pri)}
-  .ms .cnt{text-align:right;font-size:12.5px;color:var(--sub);margin-top:4px}
-  .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .opt{height:58px;border-radius:12px;border:2px solid #cbd5e1;background:#fff;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)}
-  .opt.on{border-color:var(--pri);background:#eff6ff;color:var(--pri)}
-  .opt.on::before{content:'✓ '}
-  .ms-btns{display:flex;gap:8px;margin-top:16px}
-  .err{color:#b91c1c;font-size:13.5px;margin-top:8px;min-height:1em}
-
-  /* 확인·영수증 */
-  .sum{width:100%;border-collapse:collapse;font-size:15px;margin:6px 0 4px}
-  .sum th{text-align:left;color:var(--sub);font-weight:500;padding:7px 0;width:92px;vertical-align:top}
-  .sum td{padding:7px 0;border-bottom:1px solid #f1f5f9}
-  .sum img{height:34px;vertical-align:middle;background:#f8fafc;border-radius:4px}
-  .rcpt{max-width:520px;margin:28px auto;text-align:center}
-  .rcpt .ok{width:64px;height:64px;border-radius:50%;background:#d1fae5;color:var(--ok);font-size:34px;display:grid;place-items:center;margin:0 auto 10px}
-  .rcpt h2{margin:0 0 4px;font-size:22px}
-  .rcpt .no{font-size:28px;font-weight:800;letter-spacing:.04em;color:var(--pri-d);margin:6px 0 2px;font-variant-numeric:tabular-nums}
-  .toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:11px 16px;border-radius:10px;font-size:14.5px;z-index:1200;max-width:90vw;text-align:center}
-  .loading{position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:1300;display:grid;place-items:center;font-size:17px;font-weight:700;color:var(--pri-d)}
-  @media (max-width:520px){.steps{flex-direction:column;gap:6px}}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR','Malgun Gothic',-apple-system,sans-serif}
+  header{background:var(--pri-d);color:#fff;padding:34px 20px 70px;text-align:center}
+  header h1{margin:0;font-size:28px;letter-spacing:-.02em}
+  header p{margin:8px 0 0;font-size:15px;opacity:.85}
+  main{max-width:760px;margin:-46px auto 0;padding:0 16px 40px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 20px;box-shadow:0 6px 24px rgba(15,23,42,.08);display:flex;flex-direction:column}
+  .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:26px;margin-bottom:12px}
+  .st .ic{background:#dbeafe}
+  .tc .ic{background:#e2e8f0}
+  .card h2{margin:0 0 4px;font-size:21px}
+  .card p{margin:0 0 18px;color:var(--sub);font-size:14.5px;line-height:1.55;flex:1}
+  .go{display:flex;align-items:center;justify-content:center;height:54px;border-radius:12px;background:var(--pri);color:#fff;font-size:17px;font-weight:700;text-decoration:none;border:0;cursor:pointer;font-family:inherit;width:100%}
+  .go.dark{background:#334155}
+  .pw{width:100%;height:50px;border:2px solid #cbd5e1;border-radius:12px;padding:0 14px;font-size:17px;margin-bottom:8px;font-family:inherit}
+  .pw:focus{outline:0;border-color:var(--pri)}
+  .err{color:#b91c1c;font-size:13.5px;min-height:19px;margin-bottom:4px}
+  .note{grid-column:1/-1;text-align:center;font-size:13px;color:var(--sub);margin-top:4px}
+  .demo{grid-column:1/-1;background:#fef3c7;color:#92400e;border-radius:12px;padding:10px 14px;font-size:13.5px;text-align:center;display:none}
+  @media (max-width:640px){main{grid-template-columns:1fr}header{padding:28px 16px 64px}header h1{font-size:24px}}
 </style>
 </head>
 <body>
-<div class="top"><h1>출결신고서 전자 작성</h1><p id="sub"></p></div>
-<main id="app">
-  <div class="card steps">
-    <div><i>1</i><span><b>노란 칸</b>을 누르거나 아래 <b>다음 빈칸 작성</b>을 누르세요.</span></div>
-    <div><i>2</i><span>학생·보호자가 각자 <b>직접 서명</b>합니다.</span></div>
-    <div><i>3</i><span>내용 확인 후 <b>제출하기</b>를 누르면 끝!</span></div>
-  </div>
-  <div class="prog"><div class="bar"><span id="bar"></span></div><span><b id="done">0</b>/<span id="total">0</span> 항목</span></div>
-  <div id="paperHost" class="paper-host"></div>
-  <p class="hint">※ 화면이 작으면 두 손가락으로 확대해서 볼 수 있습니다. 결재란·확인서는 담임선생님이 작성합니다.</p>
-  <div class="card attach">
-    <h2>증빙서류 사진 첨부 <span style="font-weight:400;color:#64748b">(선택, 최대 3장)</span></h2>
-    <p>진단서·소견서·처방전 등을 사진으로 찍어 올리세요. 원본 서류가 있으면 담임선생님께도 제출해 주세요.</p>
-    <div class="thumbs" id="thumbs"></div>
-    <input type="file" id="file" accept="image/*" multiple hidden>
-  </div>
+<header>
+  <h1>출결신고서</h1>
+  <p>결석·지각·조퇴·결과 신고를 온라인으로 작성하고 서명해 제출합니다</p>
+</header>
+<main>
+  <div class="demo" id="demo">체험 모드입니다. 서버 연결 전이라 제출 내용은 이 기기에만 저장됩니다.</div>
+  <section class="card st">
+    <div class="ic">✍️</div>
+    <h2>학생</h2>
+    <p>출결신고서를 작성하고 학생과 보호자가 직접 서명해 담임선생님께 제출합니다.</p>
+    <a class="go" href="student.html">신고서 작성하기</a>
+  </section>
+  <section class="card tc">
+    <div class="ic">🔒</div>
+    <h2>교사</h2>
+    <p>제출된 신고서를 월별로 모아 보고, 확인서를 작성하고, 인쇄합니다.</p>
+    <form id="tf">
+      <input type="password" class="pw" id="pw" placeholder="교사 비밀번호" autocomplete="current-password" aria-label="교사 비밀번호">
+      <div class="err" id="err"></div>
+      <button class="go dark" id="enter">교사 화면 들어가기</button>
+    </form>
+  </section>
+  <div class="note">학생은 '신고서 작성하기'를 눌러 주세요.</div>
 </main>
-<div class="dock"><div>
-  <button class="btn grow" id="nextBtn">다음 빈칸 작성 ▶</button>
-  <button class="btn pri grow" id="submitBtn">제출하기</button>
-</div></div>
-
 <script>
-var CFG = APP_CFG;
 (function () {
-  var $ = function (s) { return document.querySelector(s); };
-  var DRAFT_KEY = 'absence-draft-v1';
-  var blank = function () { return { status: '', detail: [], grade: '', cls: '', num: '', name: '', start: '', end: '', days: '', reason: '', wdate: '', pname: '', school: '', sigS: '', sigP: '' }; };
-  var rec = blank(), files = [], guided = false, cur = null, daysAuto = true;
-  try { var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (d && d.rec) { rec = Object.assign(blank(), d.rec); daysAuto = d.daysAuto !== false; } } catch (e) {}
-
-  var parentOptional = function () { return rec.status === '미인정'; };
-  var FIELDS = [
-    { k: 'status', label: '출결현황', type: 'choice', opts: ['질병', '미인정', '인정', '기타'], help: '해당하는 항목 하나를 고르세요.' },
-    { k: 'detail', label: '세부사항', type: 'multi', opts: ['결석', '지각', '조퇴', '결과'], help: '해당하는 항목을 모두 고르세요.' },
-    { k: 'grade', label: '학년', type: 'number', help: '몇 학년인지 숫자만 입력하세요. (예: 2)' },
-    { k: 'cls', label: '반', type: 'number', help: '몇 반인지 숫자만 입력하세요. (예: 10)' },
-    { k: 'num', label: '번호', type: 'number', help: '출석번호를 입력하세요.' },
-    { k: 'name', label: '학생 성명', type: 'text', max: 10, help: '본인 이름을 정확히 입력하세요.' },
-    { k: 'start', label: '기간 — 시작일', type: 'date', help: '결석·지각·조퇴·결과가 시작된 날짜' },
-    { k: 'end', label: '기간 — 종료일', type: 'date', help: '하루만 해당되면 시작일과 같은 날짜를 고르세요.' },
-    { k: 'days', label: '기간 — 일수', type: 'number', help: '주말을 빼고 자동 계산했습니다. 공휴일 등이 있으면 고쳐 주세요.' },
-    { k: 'reason', label: '사유 (구체적으로)', type: 'textarea', max: 80, help: '예) 고열과 복통으로 ○○병원 진료 후 가정에서 안정을 취함' },
-    { k: 'wdate', label: '작성일', type: 'date', help: '신고서를 작성하는 날짜' },
-    { k: 'school', label: '학교명', type: 'text', max: 20, help: '학교 이름을 입력하세요. (예: ○○고등학교) 양식에 "○○고등학교장 귀하"로 들어갑니다.' },
-    { k: 'sigS', label: '학생 서명', type: 'sign' },
-    { k: 'pname', label: '보호자 성명', type: 'text', max: 10, optional: parentOptional, help: '서명할 보호자의 성명을 입력하세요. (미인정인 경우 생략 가능)' },
-    { k: 'sigP', label: '보호자 서명', type: 'sign', optional: parentOptional }
-  ];
-  var byKey = {}; FIELDS.forEach(function (f, i) { f.i = i; byKey[f.k] = f; });
-  var isEmpty = function (k) { var v = rec[k]; return Array.isArray(v) ? !v.length : (v === '' || v == null); };
-  var isReq = function (k) { var f = byKey[k]; return !(f.optional && f.optional()); };
-  var missing = function () { return FIELDS.filter(function (f) { return isReq(f.k) && isEmpty(f.k); }); };
-
-  $('#sub').textContent = '학생·보호자 전자 서명 제출';
+  var C = window.APP_CONFIG || {}, pw = document.getElementById('pw'), err = document.getElementById('err'), btn = document.getElementById('enter');
   apiReady.then(function (api) {
-    if (api.mode !== 'demo') return;
-    var b = document.createElement('div');
-    b.style.cssText = 'background:#fef3c7;color:#92400e;font-size:13px;padding:8px 16px;text-align:center';
-    b.textContent = '체험 모드 — 서버 연결 전이라 제출 내용은 이 기기에만 저장됩니다.';
-    $('.top').after(b);
+    if (api.mode === 'demo') document.getElementById('demo').style.display = 'block';
+    return api.currentTeacher();
+  }).then(function (who) {
+    if (who) { pw.style.display = 'none'; btn.textContent = '교사 화면 열기 (로그인됨)'; btn.dataset.in = '1'; }
   });
-
-  function save() { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ rec: rec, daysAuto: daysAuto })); } catch (e) {} }
-  function render() {
-    var host = $('#paperHost');
-    host.innerHTML = AB.render(rec, { cfg: CFG, editable: true, cur: cur, required: isReq });
-    AB.fit(host);
-    var req = FIELDS.filter(function (f) { return isReq(f.k); });
-    var done = req.filter(function (f) { return !isEmpty(f.k); }).length;
-    $('#done').textContent = done; $('#total').textContent = req.length;
-    $('#bar').style.width = (done / req.length * 100) + '%';
-    $('#nextBtn').textContent = done === req.length ? '모두 작성됨 ✓' : '다음 빈칸 작성 ▶';
-    save();
-  }
-  window.addEventListener('resize', function () { AB.fit($('#paperHost')); });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
-
-  $('#paperHost').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-k]'); if (!b) return;
-    var k = b.dataset.k, v = b.dataset.v;
-    guided = false;
-    if (k === 'status') { rec.status = rec.status === v ? '' : v; render(); return; }
-    if (k === 'detail') { var i = rec.detail.indexOf(v); i >= 0 ? rec.detail.splice(i, 1) : rec.detail.push(v); render(); return; }
-    open(k);
-  });
-  $('#nextBtn').onclick = function () {
-    var m = missing();
-    if (!m.length) { toast('모든 항목을 작성했습니다. 제출하기를 눌러 주세요.'); return; }
-    guided = true; open(m[0].k);
+  document.getElementById('tf').onsubmit = function (e) {
+    e.preventDefault();
+    if (btn.dataset.in) { location.href = 'admin.html'; return; }
+    if (!pw.value) { err.textContent = '비밀번호를 입력하세요.'; pw.focus(); return; }
+    if (C.firebase && C.firebase.apiKey && !C.teacherEmail) { location.href = 'admin.html'; return; }  // 이메일 미설정 시 교사 화면에서 이메일+비밀번호
+    btn.disabled = true; btn.textContent = '확인 중…'; err.textContent = '';
+    apiReady.then(function (api) { return api.adminLogin({ pw: pw.value }); })
+      .then(function () { location.href = 'admin.html'; })
+      .catch(function (e2) { err.textContent = (e2 && e2.message) || String(e2); btn.disabled = false; btn.textContent = '교사 화면 들어가기'; pw.select(); });
   };
-  function next() {
-    cur = null;
-    if (!guided) { render(); return; }
-    var m = missing();
-    if (m.length) { open(m[0].k); return; }
-    guided = false; render(); toast('모든 항목을 작성했습니다. 내용을 확인하고 제출해 주세요.');
-  }
-
-  function weekdays(a, b) {
-    var s = new Date(a + 'T00:00:00'), e = new Date(b + 'T00:00:00'), n = 0;
-    if (isNaN(s) || isNaN(e) || e < s) return '';
-    for (var d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) { var w = d.getDay(); if (w && w !== 6) n++; }
-    return String(n || 1);
-  }
-
-  function open(k) {
-    var f = byKey[k]; cur = k; render();
-    var stepTxt = '항목 ' + (f.i + 1) + ' / ' + FIELDS.length;
-    if (f.type === 'sign') {
-      if (k === 'sigP' && !rec.pname) { open('pname'); return; }
-      AB.signPad({
-        title: k === 'sigS' ? '학생 서명 — ' + (rec.name || '') : '보호자 서명 — ' + rec.pname,
-        sub: k === 'sigS' ? '학생 본인이 아래 칸에 직접 서명해 주세요.' : '보호자께서 직접 서명해 주세요. (보호자 연서로 신고합니다)',
-        onDone: function (url) { rec[k] = url; next(); },
-        onCancel: function () { guided = false; cur = null; render(); }
-      });
-      return;
-    }
-    var ov = document.createElement('div'); ov.className = 'ms-ov';
-    var body = '';
-    if (f.type === 'choice' || f.type === 'multi') {
-      body = '<div class="opts">' + f.opts.map(function (o) {
-        var on = f.type === 'choice' ? rec[k] === o : rec[k].indexOf(o) >= 0;
-        return '<button type="button" class="opt' + (on ? ' on' : '') + '" data-o="' + o + '">' + o + '</button>';
-      }).join('') + '</div>';
-    } else if (f.type === 'textarea') {
-      body = '<textarea id="fv" maxlength="' + f.max + '" placeholder="구체적으로 적어 주세요"></textarea><div class="cnt"><span id="cn">0</span>/' + f.max + '자</div>';
-    } else {
-      var t = f.type === 'number' ? 'text" inputmode="numeric" pattern="[0-9]*' : f.type;
-      body = '<input id="fv" type="' + t + '"' + (f.max ? ' maxlength="' + f.max + '"' : '') + ' autocomplete="off">';
-    }
-    ov.innerHTML = '<div class="ms" role="dialog" aria-modal="true"><small>' + stepTxt + '</small><h3>' + f.label + '</h3>' +
-      (f.help ? '<p class="help">' + f.help + '</p>' : '') + body + '<div class="err" id="er"></div>' +
-      '<div class="ms-btns"><button type="button" class="btn grow" id="cc">닫기</button>' +
-      (f.type === 'choice' ? '' : '<button type="button" class="btn pri grow" id="ok">' + (guided ? '확인 · 다음 ▶' : '확인') + '</button>') + '</div></div>';
-    document.body.appendChild(ov);
-    var inp = ov.querySelector('#fv'), er = ov.querySelector('#er');
-    if (inp) {
-      var v = rec[k];
-      if (!v && k === 'start') v = CFG.today;
-      if (!v && k === 'end') v = rec.start || CFG.today;
-      if (!v && k === 'wdate') v = CFG.today;
-      if (!v && k === 'days' && rec.start && rec.end) v = weekdays(rec.start, rec.end);
-      inp.value = v || '';
-      if (f.type === 'textarea') { var cn = ov.querySelector('#cn'); var upd = function () { cn.textContent = inp.value.length; }; inp.oninput = upd; upd(); }
-      setTimeout(function () { try { inp.focus(); } catch (e) {} }, 60);
-      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter' && f.type !== 'textarea') { e.preventDefault(); ov.querySelector('#ok').click(); } });
-    }
-    var picked = f.type === 'multi' ? rec[k].slice() : null;
-    ov.querySelectorAll('.opt').forEach(function (b) {
-      b.onclick = function () {
-        var o = b.dataset.o;
-        if (f.type === 'choice') { rec[k] = o; close(); next(); return; }
-        var i = picked.indexOf(o); i >= 0 ? picked.splice(i, 1) : picked.push(o); b.classList.toggle('on');
-      };
-    });
-    function close() { ov.remove(); }
-    ov.querySelector('#cc').onclick = function () { close(); guided = false; cur = null; render(); };
-    ov.addEventListener('click', function (e) { if (e.target === ov) ov.querySelector('#cc').click(); });
-    var ok = ov.querySelector('#ok');
-    if (ok) ok.onclick = function () {
-      var val;
-      if (f.type === 'multi') { if (!picked.length) { er.textContent = '하나 이상 골라 주세요.'; return; } rec[k] = AB.DETAIL.map(function (d) { return d[0]; }).filter(function (d) { return picked.indexOf(d) >= 0; }); close(); next(); return; }
-      val = inp.value.trim();
-      if (!val) { er.textContent = '내용을 입력해 주세요.'; return; }
-      if (f.type === 'number') { val = val.replace(/[^0-9]/g, ''); if (!val || +val < 1 || +val > 99) { er.textContent = '숫자를 바르게 입력해 주세요.'; return; } val = String(+val); }
-      if (k === 'end' && rec.start && val < rec.start) { er.textContent = '종료일이 시작일보다 빠릅니다.'; return; }
-      if (k === 'start' && rec.end && val > rec.end) rec.end = '';
-      if (k === 'days') daysAuto = val === weekdays(rec.start, rec.end);
-      rec[k] = val;
-      if ((k === 'start' || k === 'end') && rec.start && rec.end && (daysAuto || !rec.days)) { rec.days = weekdays(rec.start, rec.end); daysAuto = true; }
-      close(); next();
-    };
-  }
-
-  /* 증빙 사진 */
-  function drawThumbs() {
-    var h = files.map(function (f, i) { return '<div class="thumb"><img src="' + f.dataUrl + '" alt="증빙 ' + (i + 1) + '"><button type="button" data-rm="' + i + '" aria-label="삭제">✕</button></div>'; }).join('');
-    if (files.length < 3) h += '<label class="addph" for="file">＋<br>사진 추가</label>';
-    $('#thumbs').innerHTML = h;
-  }
-  $('#thumbs').addEventListener('click', function (e) { var b = e.target.closest('[data-rm]'); if (b) { files.splice(+b.dataset.rm, 1); drawThumbs(); } });
-  $('#file').onchange = function () {
-    var list = Array.prototype.slice.call(this.files, 0, 3 - files.length); this.value = '';
-    list.forEach(function (file) { compress(file, function (url) { if (files.length < 3) { files.push({ name: file.name, dataUrl: url }); drawThumbs(); } }); });
-  };
-  function compress(file, cb) {
-    var img = new Image(), u = URL.createObjectURL(file);
-    img.onload = function () {
-      var max = 1600, q = 0.8, out;
-      do {   // 저장 한도(장당 약 0.9MB) 안으로 줄이기
-        var k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
-        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-        var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
-        out = c.toDataURL('image/jpeg', q); max *= 0.8; q = Math.max(0.55, q - 0.08);
-      } while (out.length > 900000 && max > 500);
-      URL.revokeObjectURL(u); cb(out);
-    };
-    img.onerror = function () { toast('이미지를 읽을 수 없습니다.'); };
-    img.src = u;
-  }
-  drawThumbs();
-
-  /* 제출 */
-  $('#submitBtn').onclick = function () {
-    var m = missing();
-    if (m.length) { toast('아직 작성하지 않은 항목: ' + m.map(function (f) { return f.label; }).join(', ')); guided = true; open(m[0].k); return; }
-    var ov = document.createElement('div'); ov.className = 'ms-ov';
-    var rows = [['출결현황', rec.status], ['세부사항', rec.detail.join(', ')], ['학생', rec.grade + '학년 ' + rec.cls + '반 ' + rec.num + '번 ' + rec.name],
-      ['기간', rec.start + ' ~ ' + rec.end + ' (' + rec.days + '일간)'], ['사유', rec.reason], ['작성일', rec.wdate],
-      ['학생 서명', '<img src="' + rec.sigS + '" alt="">'], ['보호자', (rec.pname || '(생략)') + (rec.sigP ? ' <img src="' + rec.sigP + '" alt="">' : '')],
-      ['증빙사진', files.length ? files.length + '장' : '없음']];
-    ov.innerHTML = '<div class="ms" role="dialog" aria-modal="true"><small>최종 확인</small><h3>입력하신 내용이 맞습니까?</h3>' +
-      '<p class="help">제출 후에는 수정할 수 없습니다. 잘못 제출했다면 담임선생님께 말씀드리세요.</p><table class="sum">' +
-      rows.map(function (r) { return '<tr><th>' + r[0] + '</th><td>' + (r[0].indexOf('서명') >= 0 || r[0] === '보호자' ? r[1] : AB.esc(r[1])) + '</td></tr>'; }).join('') +
-      '</table><div class="ms-btns"><button type="button" class="btn grow" id="cc">수정하기</button><button type="button" class="btn pri grow" id="go">제출하기</button></div></div>';
-    document.body.appendChild(ov);
-    ov.querySelector('#cc').onclick = function () { ov.remove(); };
-    ov.querySelector('#go').onclick = function () {
-      ov.remove();
-      var ld = document.createElement('div'); ld.className = 'loading'; ld.textContent = '제출하는 중입니다…'; document.body.appendChild(ld);
-      apiReady.then(function (api) { return api.submitReport(rec, files); })
-        .then(function (res) { ld.remove(); receipt(res); })
-        .catch(function (err) { ld.remove(); alert('제출하지 못했습니다.\n' + (err && err.message || err)); });
-    };
-  };
-
-  function receipt(res) {
-    var done = rec; rec = blank(); files = []; daysAuto = true; save();
-    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
-    document.querySelector('.dock').style.display = 'none';
-    $('#app').innerHTML = '<div class="card rcpt"><div class="ok">✓</div><h2>제출이 완료되었습니다</h2><p style="color:#475569;margin:0">담임선생님께 전달되었습니다.</p>' +
-      '<div style="margin-top:16px;font-size:13px;color:#64748b">접수번호</div><div class="no">' + AB.esc(res.id) + '</div>' +
-      '<table class="sum" style="text-align:left;margin-top:12px"><tr><th>접수일시</th><td>' + AB.esc(res.time) + '</td></tr>' +
-      '<tr><th>학생</th><td>' + AB.esc(done.grade + '학년 ' + done.cls + '반 ' + done.num + '번 ' + done.name) + '</td></tr><tr><th>구분</th><td>' + AB.esc(done.status + ' ' + done.detail.join('·')) + '</td></tr>' +
-      '<tr><th>기간</th><td>' + AB.esc(done.start + ' ~ ' + done.end) + '</td></tr><tr><th>증빙사진</th><td>' + res.files + '장</td></tr></table>' +
-      '<p style="font-size:13px;color:#64748b">이 화면을 캡처해 두면 제출 확인용으로 쓸 수 있습니다.</p>' +
-      '<div class="ms-btns"><button class="btn grow" id="see">제출한 신고서 보기</button><button class="btn pri grow" id="again">새로 작성</button></div></div><div id="copy"></div>';
-    $('#see').onclick = function () { var c = $('#copy'); c.className = 'paper-host'; c.innerHTML = AB.render(done, { cfg: CFG }); AB.fit(c); c.scrollIntoView({ behavior: 'smooth' }); };
-    $('#again').onclick = function () { location.reload(); };
-    window.scrollTo(0, 0);
-  }
-
-  var tt;
-  function toast(msg) { var t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; clearTimeout(tt); tt = setTimeout(function () { t.remove(); }, 3200); }
-
-  render();
 })();
 </script>
 </body>
