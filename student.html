@@ -140,7 +140,7 @@ var CFG = APP_CFG;
     { k: 'wdate', label: '작성일', type: 'date', help: '신고서를 작성하는 날짜' },
     { k: 'c_method', label: '확인서 — 확인 방법', type: 'choice', opts: ['가정방문', '전화연락', '학부모 내방', '문자 및 SNS', '기타'], help: '해당하는 항목 하나를 고르세요. 고른 항목의 ( ) 안에 ○ 표시가 됩니다.' },
     { k: 'c_metc', label: '확인서 — 확인 방법(기타)', type: 'text', max: 20, optional: function () { return rec.c_method !== '기타'; }, help: '기타 확인 방법을 구체적으로 적으세요.' },
-    { k: 'c_docs', label: '확인서 — 증빙 서류', type: 'multi', opts: ['의사진단서', '의사소견서', '진료확인서', '입원확인서', '기타'], optional: function () { return true; }, help: '제출하는 증빙 서류를 모두 고르세요. 없으면 비워 두세요. (결석 신고서 뒤에 첨부)' },
+    { k: 'c_docs', label: '확인서 — 증빙 서류', type: 'multi', opts: ['의사진단서', '의사소견서', '진료확인서', '입원확인서', '기타'], help: '제출하는 증빙 서류를 모두 고르세요. 목록에 없으면 "기타"를 고르고 적으세요. (결석 신고서 뒤에 첨부)' },
     { k: 'c_detc', label: '확인서 — 증빙 서류(기타)', type: 'text', max: 20, optional: function () { return rec.c_docs.indexOf('기타') < 0; }, help: '기타 증빙 서류를 구체적으로 적으세요. (예: 처방전)' },
     { k: 'c_date', label: '확인서 — 날짜', type: 'date', help: '확인서 아래 "202_ 년 월 일"에 들어갈 날짜' },
     { k: 'sname', label: '학생 성명 (서명란)', type: 'text', max: 10, help: '서명란의 "학  생 :" 옆에 들어갈 이름을 직접 입력하세요.' },

@@ -215,8 +215,10 @@ var AB = (function () {
       else h += spot('cm:' + m[0], m[3], MB, m[4] - m[3], !c.method && req.method !== false, o, { label: '확인 방법: ' + m[1] });
     });
     DOCS.forEach(function (d) {
-      if (d[0] === 'etc') h += spot('cd:etc', d[3], DEB, d[4] - d[3], false, o, { label: '증빙 서류: 기타' });
-      else h += spot('cd:' + d[0], d[3], DB, d[4] - d[3], false, o, { label: '증빙 서류: ' + d[1] });
+      var noDoc = !docs.length && req.docs !== false;   // 하나도 안 골랐으면 노란색
+      // 두 줄 간격이 좁아(4.5mm) 칸 높이를 줄여 겹치지 않게 함
+      if (d[0] === 'etc') h += spot('cd:etc', d[3], DEB, d[4] - d[3], noDoc, o, { label: '증빙 서류: 기타', top: DEB - 3.75, h: 4.4 });
+      else h += spot('cd:' + d[0], d[3], DB, d[4] - d[3], noDoc, o, { label: '증빙 서류: ' + d[1], top: DB - 4.1, h: 4.4 });
     });
     h += spot('cf:date', 84.2, 254.7, 41.0, !c.date && req.date !== false, o, { label: '확인서 날짜' });
     return h;
