@@ -210,16 +210,18 @@ var AB = (function () {
   /* 확인서 편집용 클릭 영역: 확인 방법(하나), 기타 내용, 증빙 서류(여러 개), 기타 내용, 날짜 */
   function confirmSpots(c, o) {
     var docs = c.docs || [], h = '', req = o.confirmRequired || {};
+    // 확인 방법: 아직 고르지 않았거나, '기타'를 골랐는데 내용이 비어 있으면 다섯 칸 모두 노란색
+    var mOpen = (!c.method || (c.method === 'etc' && !c.metc)) && req.method !== false;
     METHODS.forEach(function (m) {
-      // 기타를 골랐는데 내용이 비어 있으면 계속 노란색
-      if (m[0] === 'etc') h += spot('cm:etc', m[3], MEB, m[4] - m[3], (!c.method || (c.method === 'etc' && !c.metc)) && req.method !== false, o, { label: '확인 방법: 기타' });
-      else h += spot('cm:' + m[0], m[3], MB, m[4] - m[3], !c.method && req.method !== false, o, { label: '확인 방법: ' + m[1] });
+      if (m[0] === 'etc') h += spot('cm:etc', m[3], MEB, m[4] - m[3], mOpen, o, { label: '확인 방법: 기타' });
+      else h += spot('cm:' + m[0], m[3], MB, m[4] - m[3], mOpen, o, { label: '확인 방법: ' + m[1] });
     });
+    // 증빙 서류: 하나도 안 골랐거나, '기타'를 골랐는데 내용이 비어 있으면 다섯 칸 모두 노란색
+    var dOpen = (!docs.length || (docs.indexOf('etc') >= 0 && !c.detc)) && req.docs !== false;
     DOCS.forEach(function (d) {
-      var noDoc = !docs.length && req.docs !== false;   // 하나도 안 골랐으면 노란색
       // 두 줄 간격이 좁아(4.5mm) 칸 높이를 줄여 겹치지 않게 함
-      if (d[0] === 'etc') h += spot('cd:etc', d[3], DEB, d[4] - d[3], noDoc || (docs.indexOf('etc') >= 0 && !c.detc && req.docs !== false), o, { label: '증빙 서류: 기타', top: DEB - 3.75, h: 4.4 });
-      else h += spot('cd:' + d[0], d[3], DB, d[4] - d[3], noDoc, o, { label: '증빙 서류: ' + d[1], top: DB - 4.1, h: 4.4 });
+      if (d[0] === 'etc') h += spot('cd:etc', d[3], DEB, d[4] - d[3], dOpen, o, { label: '증빙 서류: 기타', top: DEB - 3.75, h: 4.4 });
+      else h += spot('cd:' + d[0], d[3], DB, d[4] - d[3], dOpen, o, { label: '증빙 서류: ' + d[1], top: DB - 4.1, h: 4.4 });
     });
     h += spot('cf:date', 84.2, 254.7, 41.0, !c.date && req.date !== false, o, { label: '확인서 날짜' });
     return h;
