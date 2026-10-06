@@ -10,13 +10,14 @@ service cloud.firestore {
 
     match /reports/{rid} {
       allow create: if request.resource.data.keys().hasOnly(
-            ['status', 'detail', 'grade', 'cls', 'num', 'name', 'start', 'end', 'days', 'reason', 'wdate', 'sname', 'pname',
+            ['status', 'detail', 'grade', 'cls', 'num', 'name', 'start', 'sp', 'end', 'ep', 'days', 'pcount', 'reason', 'wdate', 'sname', 'pname',
              'sigS', 'sigP', 'fileCount', 'code', 'state', 'confirm', 'submitted'])
-        && request.resource.data.status in ['질병', '미인정', '인정', '기타']
+        && request.resource.data.status in ['질병', '인정', '기타']
         && request.resource.data.detail is list && request.resource.data.detail.size() <= 4
         && str(request.resource.data.grade, 2) && str(request.resource.data.cls, 2)
         && str(request.resource.data.num, 3) && str(request.resource.data.name, 20)
         && str(request.resource.data.start, 10) && str(request.resource.data.end, 10)
+        && str(request.resource.data.sp, 2) && str(request.resource.data.ep, 2) && str(request.resource.data.pcount, 3)
         && str(request.resource.data.days, 3) && str(request.resource.data.reason, 120)
         && str(request.resource.data.wdate, 10) && str(request.resource.data.pname, 20)
         && str(request.resource.data.sname, 20)

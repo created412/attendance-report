@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>출결신고서 수합 (교사용)</title>
+<title>결석 신고서 수합 (교사용)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -110,7 +110,7 @@
 </head>
 <body>
 <div class="top">
-  <div><h1>출결신고서 수합</h1><p id="sub"></p></div>
+  <div><h1>결석 신고서 수합</h1><p id="sub"></p></div>
   <div class="sp"></div>
   <a href="./">처음으로</a>
   <a id="sheetLink" href="#" target="_blank" rel="noopener" style="display:none">구글 시트 열기</a>
@@ -252,137 +252,106 @@ var CFG = APP_CFG;
   }
 
   /* ---------- 확인서 작성 (개별 / 일괄) ---------- */
+  /* ---------- 확인서 작성 (일괄) ---------- */
   function confirmDlg(list) {
-    var one = list.length === 1 ? list[0] : null, c = (one && one.confirm) || {}, rows0 = c.rows || {};
-    var M = [['ga', '가. 가정방문'], ['na', '나. 전화연락'], ['da', '다. 기　　타']];
     var ov = document.createElement('div'); ov.className = 'ov';
-    ov.innerHTML = '<div class="dlg cfd"><h3>확인서 작성' + (one ? ' — ' + esc(one.grade + '학년 ' + one.cls + '반 ' + one.num + '번 ' + one.name) : ' (' + list.length + '건 일괄)') + '</h3>' +
-      '<p class="help">확인방법을 하나 고르면 그 줄의 빈칸을 채울 수 있습니다.' + (one ? '' : ' 선택한 신고서 모두에 같은 내용이 기록됩니다.') + '</p>' +
-      '<div class="cf-t">위 신고 내용이 사실과 틀림없음을 확인합니다.</div><div class="cf-t" style="margin-top:8px">1. 확인방법</div>' +
-      M.map(function (m) {
-        var v = rows0[m[0]] || {}, on = c.method === m[0];
-        return '<div class="cf-row' + (on ? ' on' : '') + '" data-m="' + m[0] + '"><label class="cf-lb"><input type="radio" name="m" value="' + m[0] + '"' + (on ? ' checked' : '') + '> ' + m[1] + '</label>' +
-          '<span class="cf-f">( <input class="i2" data-f="m" inputmode="numeric" maxlength="2" value="' + esc(v.m || '') + '"> 월 ' +
-          '<input class="i2" data-f="d" inputmode="numeric" maxlength="2" value="' + esc(v.d || '') + '"> 일 ' +
-          '<input class="i2" data-f="h" inputmode="numeric" maxlength="2" value="' + esc(v.h || '') + '"> 시 대화자 성명 : ' +
-          '<input class="i6" data-f="who" maxlength="20" value="' + esc(v.who || '') + '"' + (one && one.pname ? ' placeholder="예) ' + esc(one.pname) + '"' : '') + '> )</span></div>';
-      }).join('') +
-      (one ? '' : '<label class="cf-opt"><input type="checkbox" id="autoWho" checked> 대화자 성명을 비워 두면 각 학생의 보호자 성명으로 채우기</label>') +
-      '<div class="cf-t" style="margin-top:12px">2. 첨 부 : ' + (one
-        ? '<input class="i6" id="att" style="width:220px" maxlength="40" value="' + esc(c.attach || '') + '" placeholder="' + (one.files.length ? '예) 증빙서류 ' + one.files.length + '매' : '예) 진단서 1부') + '">'
-        : '<label class="cf-opt" style="display:inline"><input type="checkbox" id="autoAtt"> 증빙사진 수로 채우기 (예: 증빙서류 1매)</label>') + '</div>' +
-      '<div class="cf-t" style="margin-top:12px">확인일 : <input type="date" id="cdate" value="' + esc(c.date || '') + '"> <button type="button" class="btn sm" id="today">오늘</button></div>' +
-      (tsig ? '' : '<p style="color:#b45309;font-size:13.5px;margin:12px 0 0">※ 담임 서명이 아직 등록되지 않았습니다. 상단 \'담임 서명 등록\'을 먼저 하면 확인서에 서명이 찍힙니다.</p>') +
+    ov.innerHTML = '<div class="dlg cfd"><h3>확인서 일괄 작성 (' + list.length + '건)</h3>' +
+      '<p class="help">선택한 신고서 모두에 같은 내용이 기록됩니다. 증빙 서류는 학생이 표시한 것을 그대로 두려면 "변경 안 함"을 고르세요.</p>' +
+      '<div class="cf-t">1. 확인 방법 <small>(하나 선택)</small></div><div class="seg" style="margin:6px 0 4px">' +
+      AB.METHODS.map(function (m) { return '<label><input type="radio" name="m" value="' + m[0] + '"> ' + m[1] + '</label>'; }).join('') + '</div>' +
+      '<input class="i6" id="metc" maxlength="20" placeholder="기타 확인 방법" style="width:240px;display:none">' +
+      '<div class="cf-t" style="margin-top:12px">2. 증빙 서류</div><div class="seg" style="margin:6px 0 4px"><label><input type="checkbox" id="keepDocs" checked> 변경 안 함</label>' +
+      AB.DOCS.map(function (d) { return '<label><input type="checkbox" class="dc" value="' + d[0] + '" disabled> ' + d[1] + '</label>'; }).join('') + '</div>' +
+      '<input class="i6" id="detc" maxlength="20" placeholder="기타 증빙 서류" style="width:240px;display:none">' +
+      '<div class="cf-t" style="margin-top:12px">확인서 날짜 : <input type="date" id="cdate"> <button type="button" class="btn sm" id="today">오늘</button></div>' +
       '<div id="er" style="color:#b91c1c;font-size:13.5px;min-height:18px;margin-top:8px"></div>' +
-      '<div class="dlg-btns">' + (one && one.confirm ? '<button class="btn bad" id="clr" style="margin-right:auto">확인서 비우기</button>' : '') +
-      '<button class="btn" id="x">취소</button><button class="btn pri" id="ok">저장</button></div></div>';
+      '<div class="dlg-btns"><button class="btn" id="x">취소</button><button class="btn pri" id="ok">저장</button></div></div>';
     document.body.appendChild(ov);
-    function sync(focus) {
-      ov.querySelectorAll('.cf-row').forEach(function (row) {
-        var on = row.querySelector('input[type=radio]').checked;
-        row.classList.toggle('on', on);
-        row.querySelectorAll('.cf-f input').forEach(function (i) { i.disabled = !on; });
-        if (on && focus) { var e = row.querySelector('.cf-f input'); setTimeout(function () { e.focus(); }, 30); }
-      });
+    function sync() {
+      var m = $('input[name=m]:checked', ov), keep = $('#keepDocs', ov).checked;
+      $('#metc', ov).style.display = m && m.value === 'etc' ? '' : 'none';
+      ov.querySelectorAll('.dc').forEach(function (c) { c.disabled = keep; });
+      $('#detc', ov).style.display = !keep && $('.dc[value=etc]', ov).checked ? '' : 'none';
     }
-    ov.querySelectorAll('input[name=m]').forEach(function (r) { r.onchange = function () { sync(true); }; });
-    sync(false);
+    ov.addEventListener('change', sync);
     $('#today', ov).onclick = function () { $('#cdate', ov).value = CFG.today; };
     $('#x', ov).onclick = function () { ov.remove(); };
-    if ($('#clr', ov)) $('#clr', ov).onclick = function () { var m = {}; m[one.id] = null; send(m); };
     $('#ok', ov).onclick = function () {
-      var pick = $('input[name=m]:checked', ov);
-      if (!pick) { $('#er', ov).textContent = '확인방법(가정방문·전화연락·기타) 중 하나를 고르세요.'; return; }
-      var method = pick.value, row = $('.cf-row[data-m="' + method + '"]', ov), val = {};
-      row.querySelectorAll('.cf-f input').forEach(function (i) { val[i.dataset.f] = i.value.trim(); });
+      var m = $('input[name=m]:checked', ov);
+      if (!m) { $('#er', ov).textContent = '확인 방법을 하나 고르세요.'; return; }
+      var keep = $('#keepDocs', ov).checked, docs = [];
+      ov.querySelectorAll('.dc:checked').forEach(function (c) { docs.push(c.value); });
       var map = {};
       list.forEach(function (r) {
-        var rw = Object.assign({}, val);
-        if (!one && !rw.who && $('#autoWho', ov).checked) rw.who = r.pname || '';
-        var att = one ? $('#att', ov).value.trim() : ($('#autoAtt', ov).checked && r.files.length ? '증빙서류 ' + r.files.length + '매' : '');
-        var rows = {}; rows[method] = rw;
-        map[r.id] = { method: method, rows: rows, attach: att, date: $('#cdate', ov).value };
+        var old = r.confirm || {};
+        map[r.id] = { method: m.value, metc: m.value === 'etc' ? $('#metc', ov).value.trim() : '',
+          docs: keep ? (old.docs || []) : docs, detc: keep ? (old.detc || '') : (docs.indexOf('etc') >= 0 ? $('#detc', ov).value.trim() : ''),
+          date: $('#cdate', ov).value || old.date || '' };
       });
-      send(map);
-    };
-    function send(map) {
       loading(true, '저장 중…');
-      call('saveConfirms', PW, map).then(function (n) { loading(false); ov.remove(); toast(n + '건 저장했습니다.'); load(); }).catch(function (m) { loading(false); alert(m); });
-    }
+      call('saveConfirms', PW, map).then(function (n) { loading(false); ov.remove(); toast(n + '건 저장했습니다.'); load(); }).catch(function (e) { loading(false); alert(e); });
+    };
   }
 
   /* ---------- 확인서 작성 (양식 위에서 직접) ---------- */
   function confirmSheet(r) {
-    var src = r.confirm || {}, c = { method: src.method || '', rows: JSON.parse(JSON.stringify(src.rows || {})), attach: src.attach || '', date: src.date || '' };
-    var NAMES = { ga: '가. 가정방문', na: '나. 전화연락', da: '다. 기타' }, FL = { m: '월', d: '일', h: '시', who: '대화자 성명' };
-    var cur = null;
+    var src = r.confirm || {};
+    var c = { method: src.method || '', metc: src.metc || '', docs: (src.docs || []).slice(), detc: src.detc || '', date: src.date || '' };
+    var NAME = {}; AB.METHODS.forEach(function (m) { NAME[m[0]] = m[1]; });
     var ov = document.createElement('div'); ov.className = 'ov';
     ov.innerHTML = '<div class="dlg wide"><h3>확인서 작성 — ' + esc(r.grade + '학년 ' + r.cls + '반 ' + r.num + '번 ' + r.name) + '</h3>' +
-      '<p class="help" id="cfHelp"></p><div class="pv-host" id="cfv"></div>' +
-      (tsig ? '' : '<p style="color:#b45309;font-size:13.5px;margin:10px 0 0">※ 담임 서명이 아직 등록되지 않았습니다. 상단 \'담임 서명 등록\'을 하면 확인일 입력 시 "(인)" 자리에 서명이 찍힙니다.</p>') +
+      '<p class="help">양식의 확인서 칸에서 직접 누르세요. 확인 방법은 하나만 ○, 증빙 서류는 여러 개 ○ 할 수 있습니다(다시 누르면 해제). 기타를 누르면 내용을 적습니다.</p>' +
+      '<div class="pv-host" id="cfv"></div>' +
+      (tsig ? '' : '<p style="color:#b45309;font-size:13.5px;margin:10px 0 0">※ 담임 서명이 아직 등록되지 않았습니다. 상단 \'담임 서명 등록\'을 하면 저장 후 "(인)" 자리에 서명이 찍힙니다.</p>') +
       '<div class="dlg-btns">' + (r.confirm ? '<button class="btn bad" id="clr" style="margin-right:auto">확인서 비우기</button>' : '') +
       '<button class="btn" id="x">취소</button><button class="btn pri" id="ok">저장</button></div></div>';
     document.body.appendChild(ov);
     var host = $('#cfv', ov);
     function paint() {
-      host.innerHTML = AB.render(Object.assign({}, r, { confirm: c }), { cfg: CFG, teacherSig: tsig, confirmEdit: true, cur: cur });
+      host.innerHTML = AB.render(Object.assign({}, r, { confirm: c }), { cfg: CFG, teacherSig: tsig, confirmEdit: true });
       AB.fit(host);
-      $('#cfHelp', ov).textContent = c.method
-        ? NAMES[c.method] + ' 선택됨 — 그 줄의 노란 빈칸(월·일·시·대화자 성명)과 첨부·확인일을 눌러 채우세요. 다른 방법으로 바꾸려면 가·나·다를 다시 누르세요.'
-        : '먼저 확인방법(가. 가정방문 / 나. 전화연락 / 다. 기타) 중 하나를 양식에서 누르세요.';
     }
     host.addEventListener('click', function (e) {
       var b = e.target.closest('[data-k]'); if (!b) return;
       var k = b.dataset.k.split(':');
-      if (k[0] === 'cm') {   // 확인방법 선택: 선택한 줄만 남김
-        var m = k[1], keep = c.rows[m] || {};
-        c.method = m; c.rows = {}; c.rows[m] = keep; paint();
-        chain(['m', 'd', 'h', 'who'].filter(function (f) { return !keep[f]; }).map(function (f) { return m + ':' + f; }));
-        return;
+      if (k[0] === 'cm') {
+        c.method = k[1];
+        if (k[1] === 'etc') { ask('확인 방법 — 기타', 'text', c.metc, '예) 담임 면담', function (v) { if (v !== null) c.metc = v; paint(); }); return; }
+        c.metc = ''; paint(); return;
       }
-      chain([k.slice(1).join(':')], true);
+      if (k[0] === 'cd') {
+        var i = c.docs.indexOf(k[1]);
+        if (k[1] === 'etc') {
+          ask('증빙 서류 — 기타 (비우면 해제)', 'text', c.detc, '예) 처방전', function (v) {
+            if (v === null) return;
+            c.detc = v; if (v && i < 0) c.docs.push('etc'); if (!v && i >= 0) c.docs.splice(i, 1); paint();
+          });
+          return;
+        }
+        i >= 0 ? c.docs.splice(i, 1) : c.docs.push(k[1]); paint(); return;
+      }
+      if (k[0] === 'cf' && k[1] === 'date') ask('확인서 날짜', 'date', c.date, '', function (v) { if (v !== null) c.date = v; paint(); });
     });
-    // 빈칸을 차례로 입력 (취소하면 멈춤)
-    function chain(list, force) {
-      if (!list.length) { cur = null; paint(); return; }
-      var key = list[0], p = key.split(':'), label, type = 'text', val;
-      if (p[0] === 'attach') { label = '2. 첨부'; val = c.attach; }
-      else if (p[0] === 'date') { label = '확인일'; type = 'date'; val = c.date; }
-      else { label = NAMES[p[0]] + ' — ' + FL[p[1]]; type = p[1] === 'who' ? 'text' : 'num'; val = (c.rows[p[0]] || {})[p[1]]; }
-      cur = p[0] === 'attach' || p[0] === 'date' ? 'cf:' + p[0] : 'cf:' + key; paint();
-      ask(label, type, val || '', p[0] === 'attach' ? (r.files.length ? '예) 증빙서류 ' + r.files.length + '매' : '예) 진단서 1부') : (p[1] === 'who' && r.pname ? '예) ' + r.pname : ''), function (v) {
-        if (v === null) { cur = null; paint(); return; }
-        if (p[0] === 'attach') c.attach = v; else if (p[0] === 'date') c.date = v;
-        else { c.rows[p[0]] = c.rows[p[0]] || {}; c.rows[p[0]][p[1]] = v; }
-        chain(list.slice(1));
-      });
-    }
     function ask(label, type, val, ph, cb) {
       var d = document.createElement('div'); d.className = 'ov'; d.style.zIndex = 900; d.style.alignItems = 'center';
       d.innerHTML = '<form class="dlg" style="width:min(380px,100%)"><h3>' + esc(label) + '</h3>' +
-        '<input id="av" ' + (type === 'date' ? 'type="date"' : type === 'num' ? 'type="text" inputmode="numeric" maxlength="2"' : 'type="text" maxlength="40"') +
-        ' value="' + esc(val) + '" placeholder="' + esc(ph) + '" style="width:100%;height:46px;font-size:18px;border:2px solid #cbd5e1;border-radius:10px;padding:0 12px;margin-top:8px">' +
+        '<input id="av" ' + (type === 'date' ? 'type="date"' : 'type="text" maxlength="20"') + ' value="' + esc(val) + '" placeholder="' + esc(ph) + '" style="width:100%;height:46px;font-size:18px;border:2px solid #cbd5e1;border-radius:10px;padding:0 12px;margin-top:8px">' +
         (type === 'date' ? '<button type="button" class="btn sm" id="tdy" style="margin-top:8px">오늘</button>' : '') +
         '<div class="dlg-btns"><button type="button" class="btn" id="ac">닫기</button><button class="btn pri">확인</button></div></form>';
       document.body.appendChild(d);
-      var inp = $('#av', d); setTimeout(function () { inp.focus(); inp.select && inp.select(); }, 30);
+      var inp = $('#av', d); setTimeout(function () { inp.focus(); }, 30);
       if ($('#tdy', d)) $('#tdy', d).onclick = function () { inp.value = CFG.today; };
       $('#ac', d).onclick = function () { d.remove(); cb(null); };
-      $('form', d).onsubmit = function (e) {
-        e.preventDefault();
-        var v = inp.value.trim();
-        if (type === 'num' && v && !/^\d{1,2}$/.test(v)) { inp.style.borderColor = '#b91c1c'; return; }
-        d.remove(); cb(v);
-      };
+      $('form', d).onsubmit = function (e) { e.preventDefault(); d.remove(); cb(inp.value.trim()); };
     }
     function send(map) {
       loading(true, '저장 중…');
-      call('saveConfirms', PW, map).then(function (n) { loading(false); ov.remove(); toast('확인서를 저장했습니다.'); load(); }).catch(function (m) { loading(false); alert(m); });
+      call('saveConfirms', PW, map).then(function () { loading(false); ov.remove(); toast('확인서를 저장했습니다.'); load(); }).catch(function (e) { loading(false); alert(e); });
     }
     $('#x', ov).onclick = function () { ov.remove(); };
     if ($('#clr', ov)) $('#clr', ov).onclick = function () { var m = {}; m[r.id] = null; send(m); };
     $('#ok', ov).onclick = function () {
-      if (!c.method) { toast('확인방법(가·나·다) 중 하나를 먼저 고르세요.'); return; }
+      if (!c.method) { toast('확인 방법을 하나 고르세요.'); return; }
       var m = {}; m[r.id] = c; send(m);
     };
     paint();
@@ -417,7 +386,7 @@ var CFG = APP_CFG;
   function printSummary() {
     if (!items.length) return toast('집계할 항목이 없습니다.');
     var ym = $('#ym').value.split('-'), basis = $('#basis').value;
-    var title = basis === 'all' ? '출결신고서 제출 현황 (전체)' : ym[0] + '년 ' + (+ym[1]) + '월 출결신고서 제출 현황';
+    var title = basis === 'all' ? '결석 신고서 제출 현황 (전체)' : ym[0] + '년 ' + (+ym[1]) + '월 결석 신고서 제출 현황';
     var h = '<div class="sum-page"><h2>' + esc(title) + '</h2><div class="meta">' + esc((CFG.school || '') + ($('#klass').value ? ' ' + $('#klass').value.replace('-', '학년 ') + '반' : '') + (CFG.teacher ? ' · 담임 ' + CFG.teacher : '') + ' · 출력일 ' + CFG.today) + '</div>' +
       '<table><thead><tr><th style="width:12mm">학년-반</th><th style="width:9mm">번호</th><th style="width:16mm">성명</th><th style="width:14mm">출결현황</th><th style="width:16mm">세부사항</th><th style="width:30mm">기간</th><th style="width:9mm">일수</th><th>사유</th><th style="width:10mm">증빙</th><th style="width:14mm">확인</th></tr></thead><tbody>' +
       items.map(function (r) {

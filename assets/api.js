@@ -6,16 +6,19 @@ const makeCode = () => { const d = new Date(); return `${String(d.getFullYear())
 
 function clean(rec) {
   const s = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+  const M = { '가정방문': 'home', '전화연락': 'phone', '학부모 내방': 'visit', '문자 및 SNS': 'sns', '기타': 'etc' };
+  const D = { '의사진단서': 'diag', '의사소견서': 'opinion', '진료확인서': 'clinic', '입원확인서': 'admit', '기타': 'etc' };
+  const docs = (rec.c_docs || []).map((n) => D[n]).filter(Boolean);
   return {
     status: s(rec.status, 10), detail: (rec.detail || []).map((d) => s(d, 10)).slice(0, 4),
-    grade: s(rec.grade, 2), cls: s(rec.cls, 2), num: s(rec.num, 3), name: s(rec.name, 20), start: s(rec.start, 10), end: s(rec.end, 10), days: s(rec.days, 3),
+    grade: s(rec.grade, 2), cls: s(rec.cls, 2), num: s(rec.num, 3), name: s(rec.name, 20),
+    start: s(rec.start, 10), sp: s(rec.sp, 2), end: s(rec.end, 10), ep: s(rec.ep, 2), days: s(rec.days, 3), pcount: s(rec.pcount, 3),
     reason: s(rec.reason, 120), wdate: s(rec.wdate, 10), sname: s(rec.sname, 20), pname: s(rec.pname, 20),
     sigS: String(rec.sigS || ''), sigP: String(rec.sigP || ''),
-    confirm: (function () {
-      const code = { '가. 가정방문': 'ga', '나. 전화연락': 'na', '다. 기타': 'da' }[rec.c_method];
-      if (!code) return null;
-      return { method: code, rows: { [code]: { m: s(rec.c_m, 2), d: s(rec.c_d, 2), h: s(rec.c_h, 2), who: s(rec.c_who, 20) } }, attach: s(rec.c_attach, 30), date: s(rec.c_date, 10) };
-    })()
+    confirm: M[rec.c_method] ? {
+      method: M[rec.c_method], metc: rec.c_method === '기타' ? s(rec.c_metc, 20) : '',
+      docs, detc: docs.indexOf('etc') >= 0 ? s(rec.c_detc, 20) : '', date: s(rec.c_date, 10)
+    } : null
   };
 }
 function inMonth(r, ym, basis) {
