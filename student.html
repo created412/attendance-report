@@ -6,10 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/sheet.css?v=202610061219">
-<script src="config.js?v=202610061219"></script>
-<script src="assets/sheet.js?v=202610061219"></script>
-<script type="module" src="assets/api.js?v=202610061219"></script>
+<link rel="stylesheet" href="assets/sheet.css?v=202610061234">
+<script src="config.js?v=202610061234"></script>
+<script src="assets/sheet.js?v=202610061234"></script>
+<script type="module" src="assets/api.js?v=202610061234"></script>
 <style>
   :root{--pri:#1d4ed8;--pri-d:#1e3a8a;--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#eef2f7;--ok:#047857;--warn:#b45309}
   *{box-sizing:border-box}
@@ -122,6 +122,12 @@ var CFG = APP_CFG;
     return { method: M_CODE[x.c_method] || '', metc: x.c_metc, docs: (x.c_docs || []).map(function (n) { return D_CODE[n]; }), detc: x.c_detc, date: x.c_date };
   }
   function curKey() { return cur === 'c_date' ? 'cf:date' : cur; }
+  // '~일간'은 하루 전체 결석(결석)이 있을 때만, 지각·조퇴·결과만이면 비우고 교시 수만 씀
+  var fullDay = function () { return rec.detail.indexOf('결석') >= 0; };
+  function syncDays() {
+    if (!fullDay()) { rec.days = ''; daysAuto = true; }
+    else if (!rec.days && rec.start && rec.end) { rec.days = weekdays(rec.start, rec.end); daysAuto = true; }
+  }
   var needPeriods = function () { return rec.detail.some(function (d) { return d !== '결석'; }); };
   var FIELDS = [
     { k: 'status', label: '출결현황', type: 'choice', opts: ['질병', '인정', '기타'], help: '해당하는 항목 하나를 고르세요.' },
@@ -134,8 +140,8 @@ var CFG = APP_CFG;
     { k: 'sp', label: '기간 — 시작 교시', type: 'number', help: '몇 교시부터인지 숫자로 입력하세요. (하루 전체 결석이면 1)' },
     { k: 'end', label: '기간 — 종료일', type: 'date', help: '하루만 해당되면 시작일과 같은 날짜를 고르세요.' },
     { k: 'ep', label: '기간 — 끝 교시', type: 'number', help: '몇 교시까지인지 숫자로 입력하세요. (하루 전체 결석이면 마지막 교시, 예: 7)' },
-    { k: 'days', label: '기간 — 일수', type: 'number', help: '주말을 빼고 자동 계산했습니다. 공휴일 등이 있으면 고쳐 주세요.' },
-    { k: 'pcount', label: '기간 — 교시 수', type: 'number', optional: function () { return !needPeriods(); }, help: '지각·조퇴·결과로 빠진 교시 수 (결석만이면 비워 두세요)' },
+    { k: 'days', label: '기간 — 일수', type: 'number', optional: function () { return !fullDay(); }, help: '하루 전체(8시간)를 결석한 날수입니다. 주말을 빼고 자동 계산했으니 공휴일 등이 있으면 고쳐 주세요.' },
+    { k: 'pcount', label: '기간 — 교시 수', type: 'number', optional: function () { return !needPeriods(); }, help: '하루(8시간)를 채우지 못한 지각·조퇴·결과의 교시 수를 입력하세요.' },
     { k: 'reason', label: '사유 (구체적으로)', type: 'textarea', max: 80, help: '예) 고열과 복통으로 ○○병원 진료 후 가정에서 안정을 취함' },
     { k: 'wdate', label: '작성일', type: 'date', help: '신고서를 작성하는 날짜' },
     { k: 'c_method', label: '확인서 — 확인 방법', type: 'choice', opts: ['가정방문', '전화연락', '학부모 내방', '문자 및 SNS', '기타'], help: '해당하는 항목 하나를 고르세요. 고른 항목의 ( ) 안에 ○ 표시가 됩니다.' },
@@ -164,6 +170,7 @@ var CFG = APP_CFG;
 
   function save() { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ rec: rec, daysAuto: daysAuto })); } catch (e) {} }
   function render() {
+    syncDays();
     var host = $('#paperHost');
     host.innerHTML = AB.render(Object.assign({}, rec, { confirm: confirmObj() }), { cfg: CFG, editable: true, confirmEdit: true, cur: curKey(), required: isReq });
     AB.fit(host);
@@ -257,7 +264,7 @@ var CFG = APP_CFG;
       if (!v && k === 'start') v = CFG.today;
       if (!v && k === 'end') v = rec.start || CFG.today;
       if (!v && k === 'wdate') v = CFG.today;
-      if (!v && k === 'days' && rec.start && rec.end) v = weekdays(rec.start, rec.end);
+      if (!v && k === 'days' && fullDay() && rec.start && rec.end) v = weekdays(rec.start, rec.end);
       inp.value = v || '';
       if (f.type === 'textarea') { var cn = ov.querySelector('#cn'); var upd = function () { cn.textContent = inp.value.length; }; inp.oninput = upd; upd(); }
       setTimeout(function () { try { inp.focus(); } catch (e) {} }, 60);
@@ -279,13 +286,14 @@ var CFG = APP_CFG;
       var val;
       if (f.type === 'multi') { if (!picked.length && isReq(k)) { er.textContent = '하나 이상 골라 주세요.'; return; } rec[k] = f.opts.filter(function (d) { return picked.indexOf(d) >= 0; }); close(); next(); return; }
       val = inp.value.trim();
+      if (!val && !isReq(k)) { rec[k] = ''; close(); next(); return; }   // 선택 항목은 비워도 됨
       if (!val) { er.textContent = '내용을 입력해 주세요.'; return; }
       if (f.type === 'number') { val = val.replace(/[^0-9]/g, ''); if (!val || +val > 99 || (+val < 1 && k !== 'pcount')) { er.textContent = '숫자를 바르게 입력해 주세요.'; return; } val = String(+val); }
       if (k === 'end' && rec.start && val < rec.start) { er.textContent = '종료일이 시작일보다 빠릅니다.'; return; }
       if (k === 'start' && rec.end && val > rec.end) rec.end = '';
       if (k === 'days') daysAuto = val === weekdays(rec.start, rec.end);
       rec[k] = val;
-      if ((k === 'start' || k === 'end') && rec.start && rec.end && (daysAuto || !rec.days)) { rec.days = weekdays(rec.start, rec.end); daysAuto = true; }
+      if ((k === 'start' || k === 'end') && fullDay() && rec.start && rec.end && (daysAuto || !rec.days)) { rec.days = weekdays(rec.start, rec.end); daysAuto = true; }
       close(); next();
     };
   }
@@ -324,7 +332,7 @@ var CFG = APP_CFG;
     if (m.length) { toast('아직 작성하지 않은 항목: ' + m.map(function (f) { return f.label; }).join(', ')); guided = true; open(m[0].k); return; }
     var ov = document.createElement('div'); ov.className = 'ms-ov';
     var rows = [['출결현황', rec.status], ['세부사항', rec.detail.join(', ')], ['학생', rec.grade + '학년 ' + rec.cls + '반 ' + rec.num + '번 ' + rec.name],
-      ['기간', rec.start + ' ' + rec.sp + '교시 ~ ' + rec.end + ' ' + rec.ep + '교시 (' + rec.days + '일간' + (rec.pcount ? ' ' + rec.pcount + '교시' : '') + ')'], ['사유', rec.reason], ['작성일', rec.wdate],
+      ['기간', rec.start + ' ' + rec.sp + '교시 ~ ' + rec.end + ' ' + rec.ep + '교시 (' + [rec.days ? rec.days + '일간' : '', rec.pcount ? rec.pcount + '교시' : ''].filter(Boolean).join(' ') + ')'], ['사유', rec.reason], ['작성일', rec.wdate],
       ['학생 서명', AB.esc(rec.sname) + ' <img src="' + rec.sigS + '" alt="">'], ['보호자', (rec.pname || '(생략)') + (rec.sigP ? ' <img src="' + rec.sigP + '" alt="">' : '')],
       ['확인서', '확인 방법: ' + rec.c_method + (rec.c_method === '기타' ? '(' + rec.c_metc + ')' : '') + ' / 증빙: ' + (rec.c_docs.length ? rec.c_docs.map(function (n) { return n === '기타' ? '기타(' + rec.c_detc + ')' : n; }).join(', ') : '없음') + ' / ' + rec.c_date],
       ['증빙사진', files.length ? files.length + '장' : '없음']];
