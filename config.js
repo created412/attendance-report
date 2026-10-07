@@ -4,10 +4,17 @@ window.APP_CONFIG = {
   teacher: '',          // 비워 두면 교사 화면에서 입력 (확인서 '학급담임' 칸)
 
   // 교사 화면에 로그인할 이메일 (Firebase Authentication 에 등록한 계정)
-  teacherEmail: '',
+  teacherEmail: 'histo5731@gmail.com',
 
   // Firebase 콘솔 → 프로젝트 설정 → 내 앱(웹) 의 firebaseConfig 를 그대로 붙여넣기
-  firebase: null
+  firebase: {
+    apiKey: 'AIzaSyBu0eI6GhkOb4w1BrwMmmsPq3smuaBFnas',
+    authDomain: 'project-1b074.firebaseapp.com',
+    projectId: 'project-1b074',
+    storageBucket: 'project-1b074.firebasestorage.app',
+    messagingSenderId: '621182089213',
+    appId: '1:621182089213:web:57863be4ba07dd8cf40b94'
+  }
 };
 
 /* ---- 아래는 수정하지 마세요 ---- */
