@@ -264,41 +264,61 @@ var AB = (function () {
       '<div class="ab-pad-btns"><button type="button" class="clr">다시 쓰기</button><button type="button" class="cc">취소</button><button type="button" class="ok">서명 완료</button></div></div>';
     document.body.appendChild(ov);
     var area = ov.querySelector('.ab-pad-area'), cv = ov.querySelector('canvas'), g = cv.getContext('2d');
-    var dpr = Math.max(1, window.devicePixelRatio || 1), box = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }, drawn = false;
+    var dpr = Math.max(1, window.devicePixelRatio || 1), W = 0, H = 0;
+    // 획은 0~1 비율 좌표로 기억해 둔다 → 휴대폰 주소창이 접히는 등 칸 크기가 바뀌어도 다시 그려서 지워지지 않음
+    var strokes = [], cur = null;
+
+    function seg(p0, p1, p2) {
+      var v = Math.hypot((p2.x - p1.x) * W, (p2.y - p1.y) * H);
+      g.lineWidth = Math.max(1.6, Math.min(3.6, 4.2 - v * 0.12)) * dpr;
+      g.beginPath();
+      g.moveTo((p0.x + p1.x) / 2 * W * dpr, (p0.y + p1.y) / 2 * H * dpr);
+      g.quadraticCurveTo(p1.x * W * dpr, p1.y * H * dpr, (p1.x + p2.x) / 2 * W * dpr, (p1.y + p2.y) / 2 * H * dpr);
+      g.stroke();
+    }
+    function dot(p) { g.beginPath(); g.arc(p.x * W * dpr, p.y * H * dpr, 1.4 * dpr, 0, Math.PI * 2); g.fill(); }
+    function redraw() {
+      g.clearRect(0, 0, cv.width, cv.height);
+      strokes.forEach(function (s) { dot(s[0]); for (var i = 2; i < s.length; i++) seg(s[i - 2], s[i - 1], s[i]); });
+    }
     function size() {
       var rc = area.getBoundingClientRect();
-      cv.width = Math.round(rc.width * dpr); cv.height = Math.round(rc.height * dpr);
-      g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#0b1220';
+      if (!rc.width || !rc.height || (Math.round(rc.width) === W && Math.round(rc.height) === H)) return;
+      W = Math.round(rc.width); H = Math.round(rc.height);
+      cv.width = W * dpr; cv.height = H * dpr;
+      g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#0b1220'; g.fillStyle = '#0b1220';
+      redraw();
     }
     size();
-    var pts = [], down = false;
-    function pos(e) { var rc = cv.getBoundingClientRect(); return { x: (e.clientX - rc.left) * dpr, y: (e.clientY - rc.top) * dpr, p: e.pressure || 0.5 }; }
-    function grow(p) { box.x0 = Math.min(box.x0, p.x); box.y0 = Math.min(box.y0, p.y); box.x1 = Math.max(box.x1, p.x); box.y1 = Math.max(box.y1, p.y); }
+    var ro = window.ResizeObserver ? new ResizeObserver(size) : null;
+    if (ro) ro.observe(area); else window.addEventListener('resize', size);
+
+    function pos(e) { var rc = cv.getBoundingClientRect(); return { x: (e.clientX - rc.left) / rc.width, y: (e.clientY - rc.top) / rc.height }; }
     cv.addEventListener('pointerdown', function (e) {
-      e.preventDefault(); cv.setPointerCapture(e.pointerId); down = true; pts = [pos(e)]; grow(pts[0]);
-      g.beginPath(); g.fillStyle = '#0b1220'; g.arc(pts[0].x, pts[0].y, 1.4 * dpr, 0, Math.PI * 2); g.fill();
+      e.preventDefault();
+      try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+      cur = [pos(e)]; strokes.push(cur); dot(cur[0]);
     });
     cv.addEventListener('pointermove', function (e) {
-      if (!down) return; e.preventDefault();
-      var p = pos(e); pts.push(p); grow(p); drawn = true;
-      var n = pts.length; if (n < 3) return;
-      var p0 = pts[n - 3], p1 = pts[n - 2], p2 = pts[n - 1];
-      var v = Math.hypot(p2.x - p1.x, p2.y - p1.y) / dpr;
-      g.lineWidth = Math.max(1.6, Math.min(3.6, 4.2 - v * 0.12)) * dpr;
-      g.beginPath(); g.moveTo((p0.x + p1.x) / 2, (p0.y + p1.y) / 2); g.quadraticCurveTo(p1.x, p1.y, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2); g.stroke();
+      if (!cur) return; e.preventDefault();
+      cur.push(pos(e));
+      var n = cur.length; if (n >= 3) seg(cur[n - 3], cur[n - 2], cur[n - 1]);
     });
-    function up() { down = false; }
-    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-    function close() { ov.remove(); window.removeEventListener('resize', size); }
-    window.addEventListener('resize', size);
-    ov.querySelector('.clr').onclick = function () { g.clearRect(0, 0, cv.width, cv.height); drawn = false; box = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }; };
+    function up() { cur = null; }
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up); cv.addEventListener('lostpointercapture', up);
+
+    function close() { ov.remove(); if (ro) ro.disconnect(); else window.removeEventListener('resize', size); }
+    ov.querySelector('.clr').onclick = function () { strokes = []; cur = null; redraw(); };
     ov.querySelector('.cc').onclick = function () { close(); opt.onCancel && opt.onCancel(); };
     ov.querySelector('.ok').onclick = function () {
-      if (!drawn || (box.x1 - box.x0) < 24 * dpr) { alert('서명을 해 주세요.'); return; }
-      var pad = 6 * dpr, x0 = Math.max(0, box.x0 - pad), y0 = Math.max(0, box.y0 - pad);
-      var w = Math.min(cv.width, box.x1 + pad) - x0, h = Math.min(cv.height, box.y1 + pad) - y0;
-      var out = exportPng(cv, x0, y0, w, h, 420, 160);
-      if (out.length > 45000) out = exportPng(cv, x0, y0, w, h, 260, 100);
+      size(); redraw();   // 저장 직전에 현재 크기로 다시 그려 빈 서명이 저장되지 않게 함
+      var x0 = 1, y0 = 1, x1 = 0, y1 = 0;
+      strokes.forEach(function (s) { s.forEach(function (p) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }); });
+      if (!strokes.length || (x1 - x0) * W < 24) { alert('서명을 해 주세요.'); return; }
+      var pad = 6 * dpr, px0 = Math.max(0, x0 * W * dpr - pad), py0 = Math.max(0, y0 * H * dpr - pad);
+      var w = Math.min(cv.width, x1 * W * dpr + pad) - px0, h = Math.min(cv.height, y1 * H * dpr + pad) - py0;
+      var out = exportPng(cv, px0, py0, w, h, 420, 160);
+      if (out.length > 45000) out = exportPng(cv, px0, py0, w, h, 260, 100);
       close(); opt.onDone && opt.onDone(out);
     };
   }
