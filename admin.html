@@ -6,10 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/sheet.css?v=202610080847">
-<script src="config.js?v=202610080847"></script>
-<script src="assets/sheet.js?v=202610080847"></script>
-<script type="module" src="assets/api.js?v=202610080847"></script>
+<link rel="stylesheet" href="assets/sheet.css?v=202610200944">
+<script src="config.js?v=202610200944"></script>
+<script src="assets/sheet.js?v=202610200944"></script>
+<script src="assets/forms.js?v=202610200944"></script>
+<script type="module" src="assets/api.js?v=202610200944"></script>
 <style>
   :root{--pri:#1d4ed8;--pri-d:#1e3a8a;--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#f1f5f9;--ok:#047857;--warn:#b45309;--bad:#b91c1c}
   *{box-sizing:border-box}
@@ -84,6 +85,9 @@
   .i2{width:44px}.i6{width:110px}
   .cf-t input[type=date],.cf-t .i6{height:34px;border:1px solid #cbd5e1;border-radius:7px;padding:0 8px;font-size:15px}
   .cf-opt{display:block;font-size:13.5px;color:var(--sub);margin:4px 2px;font-family:'Noto Sans KR',sans-serif}
+  .mtabs{display:flex;gap:8px;margin-bottom:12px}
+  .mtab{height:44px;padding:0 18px;border-radius:10px;border:2px solid #cbd5e1;background:#fff;font-size:15px;font-weight:700;color:var(--sub);cursor:pointer}
+  .mtab.on{border-color:var(--pri);background:#eff6ff;color:var(--pri)}
   /* 인쇄 */
   #print{display:none}
   .att-page,.sum-page{width:210mm;height:297mm;padding:14mm 12mm;background:#fff;color:#000;display:flex;flex-direction:column;overflow:hidden}
@@ -159,8 +163,18 @@ var CFG = APP_CFG;
   $('#logout').onclick = function () { call('logout').then(function () { location.href = './'; }); };
 
   /* ---------- 목록 ---------- */
+  var view = 'abs';
   function mainView() {
-    $('#app').innerHTML =
+    $('#app').innerHTML = '<div class="mtabs"><button type="button" class="mtab" data-view="abs">결석 신고서 · 출석의견서</button><button type="button" class="mtab" data-view="trip">교외체험학습</button></div><div id="view"></div>';
+    document.querySelectorAll('.mtab').forEach(function (b) { b.onclick = function () { view = b.dataset.view; showView(); }; });
+    showView();
+  }
+  function showView() {
+    document.querySelectorAll('.mtab').forEach(function (b) { b.classList.toggle('on', b.dataset.view === view); });
+    if (view === 'trip') tripView(); else absView();
+  }
+  function absView() {
+    $('#view').innerHTML =
       '<div class="bar">' +
       '<label>월 <input type="month" id="ym"></label>' +
       '<label>기준 <select id="basis"><option value="period">출결 기간 (그 달에 걸친 건)</option><option value="submit">제출일</option><option value="all">전체 보기</option></select></label>' +
@@ -205,7 +219,7 @@ var CFG = APP_CFG;
     if (!items.length) { $('#list').innerHTML = '<div class="empty">해당 기간에 제출된 신고서가 없습니다.</div>'; return; }
     $('#list').innerHTML = '<table class="list"><thead><tr><th><input type="checkbox" id="all" aria-label="전체 선택"></th><th>학년-반</th><th>번호</th><th>성명</th><th>출결현황</th><th>세부사항</th><th>기간</th><th>일수</th><th>사유</th><th>증빙</th><th>제출일시</th><th>상태</th><th></th></tr></thead><tbody>' +
       items.map(function (r, i) {
-        return '<tr><td><input type="checkbox" data-sel="' + esc(r.id) + '"' + (sel[r.id] ? ' checked' : '') + '></td><td class="num">' + esc(gc(r)) + '</td><td class="num">' + esc(r.num) + '</td><td><b>' + esc(r.name) + '</b></td>' +
+        return '<tr><td><input type="checkbox" data-sel="' + esc(r.id) + '"' + (sel[r.id] ? ' checked' : '') + '></td><td class="num">' + esc(gc(r)) + '</td><td class="num">' + esc(r.num) + '</td><td><b>' + esc(r.name) + '</b>' + (r.opinion ? ' <span class="tag" style="border-color:#f59e0b;color:#b45309">의견서</span>' : '') + '</td>' +
           '<td>' + esc(r.status) + '</td><td>' + r.detail.map(function (d) { return '<span class="tag">' + esc(d) + '</span>'; }).join('') + '</td>' +
           '<td class="num">' + esc(r.start.slice(5)) + (r.end !== r.start ? ' ~ ' + esc(r.end.slice(5)) : '') + '</td><td class="num">' + esc(r.days) + '</td>' +
           '<td class="reason" title="' + esc(r.reason) + '">' + esc(r.reason) + '</td><td>' + (r.files.length ? r.files.length + '장' : '-') + '</td>' +
@@ -239,6 +253,7 @@ var CFG = APP_CFG;
       '<div class="dlg-btns"><button class="btn" id="x">닫기</button><button class="btn" id="cf">확인서 작성</button><button class="btn pri" id="pr">이 신고서 인쇄</button></div></div>';
     document.body.appendChild(ov);
     var pv = $('#pv', ov); pv.innerHTML = AB.render(r, { cfg: CFG, teacherSig: r.state === '확인완료' ? tsig : '' }); AB.fit(pv);
+    if (r.opinion) { var pv2 = document.createElement('div'); pv2.className = 'pv-host'; pv2.style.marginTop = '10px'; pv2.innerHTML = opPage(r); pv.after(pv2); AB.fit(pv2); }
     if (r.files.length) {
       $('#atts', ov).textContent = '증빙사진 불러오는 중…';
       call('getAttachments', PW, r.files).then(function (list) {
@@ -357,6 +372,145 @@ var CFG = APP_CFG;
     paint();
   }
 
+  /* ---------- 출석의견서(학부모) 페이지 ---------- */
+  function opPage(r) {
+    if (!r.opinion) return '';
+    var o = r.opinion;
+    return FORMS.opinion({ who: 'parent', status: r.status, detail: r.detail, grade: r.grade, cls: r.cls, num: r.num, name: r.name, reason: r.reason,
+      note: o.note, date: o.date, pname: o.pname, sig: o.sig }, {});
+  }
+
+  /* ---------- 교외체험학습 (신청서·통보서·결과보고서) ---------- */
+  var trips = [], tsel = {};
+  var FORM_NAME = { family: '가족동반여행', relative: '친·인척 방문', tour: '답사·견학 활동', exp: '체험활동' };
+  function tripPages(r) {
+    return r.kind === 'apply'
+      ? [FORMS.tripApply(r, { teacher: CFG.teacher, teacherSig: r.notice && r.notice.date ? tsig : '' })]
+      : FORMS.tripReport(r, {});
+  }
+  function tripView() {
+    $('#view').innerHTML =
+      '<div class="bar">' +
+      '<label>월 <input type="month" id="tym"></label>' +
+      '<label>기준 <select id="tbasis"><option value="period">체험 기간 (그 달에 걸친 건)</option><option value="submit">제출일</option><option value="all">전체 보기</option></select></label>' +
+      '<label>구분 <select id="tkind"><option value="">전체</option><option value="apply">신청서</option><option value="report">결과보고서</option></select></label>' +
+      '<button class="btn" id="treload">새로고침</button><span class="sep"></span>' +
+      '<button class="btn pri" id="tpSel">선택 인쇄</button><button class="btn" id="tpAll">목록 전체 인쇄</button></div>' +
+      '<div class="stats" id="tstats"></div><div class="tbl-wrap" id="tlist"></div>';
+    $('#tym').value = CFG.today.slice(0, 7);
+    $('#tym').onchange = $('#tbasis').onchange = $('#treload').onclick = loadTrips;
+    $('#tkind').onchange = drawTrips;
+    $('#tpSel').onclick = function () { var l = shownTrips().filter(function (r) { return tsel[r.id]; }); if (!l.length) return toast('인쇄할 항목을 선택하세요.'); printTrips(l); };
+    $('#tpAll').onclick = function () { var l = shownTrips(); if (!l.length) return toast('인쇄할 항목이 없습니다.'); printTrips(l); };
+    loadTrips();
+  }
+  function shownTrips() { var k = $('#tkind') && $('#tkind').value; return trips.filter(function (r) { return !k || r.kind === k; }); }
+  function loadTrips() {
+    loading(true);
+    Promise.all([call('listTrips', PW, $('#tym').value, $('#tbasis').value), call('getTeacher', PW)]).then(function (res) {
+      trips = res[0]; tsig = res[1].sig || ''; if (res[1].name) CFG.teacher = res[1].name; setSub();
+      tsel = {}; loading(false); drawTrips();
+    }).catch(function (m) { loading(false); if (/권한|로그인/.test(m)) loginView(m); else alert(m); });
+  }
+  function drawTrips() {
+    var list = shownTrips(), ap = list.filter(function (r) { return r.kind === 'apply'; });
+    var wait = ap.filter(function (r) { return r.state !== '통보완료'; }).length;
+    $('#tstats').innerHTML = stat('신청서', ap.length + '건') + stat('통보 대기', wait + '건') + stat('결과보고서', (list.length - ap.length) + '건') +
+      stat('신청 일수 합계', ap.reduce(function (a, r) { return a + (+r.days || 0); }, 0) + '일');
+    if (!list.length) { $('#tlist').innerHTML = '<div class="empty">해당 기간에 제출된 교외체험학습 서류가 없습니다.</div>'; return; }
+    $('#tlist').innerHTML = '<table class="list"><thead><tr><th><input type="checkbox" id="tall" aria-label="전체 선택"></th><th>구분</th><th>학년-반</th><th>번호</th><th>성명</th><th>기간</th><th>일수</th><th>학습형태</th><th>목적지 / 장소</th><th>제출일시</th><th>상태</th><th></th></tr></thead><tbody>' +
+      list.map(function (r, i) {
+        var st = r.kind === 'report' ? '<span class="pill ok">제출</span>' : r.state === '통보완료' ? '<span class="pill ok">통보완료</span>' : '<span class="pill wait">통보 대기</span>';
+        return '<tr><td><input type="checkbox" data-tsel="' + esc(r.id) + '"' + (tsel[r.id] ? ' checked' : '') + '></td>' +
+          '<td>' + (r.kind === 'apply' ? '<span class="tag">신청서</span>' : '<span class="tag" style="border-color:#0f766e;color:#0f766e">결과보고서</span>') + '</td>' +
+          '<td class="num">' + esc(gc(r)) + '</td><td class="num">' + esc(r.num) + '</td><td><b>' + esc(r.name) + '</b></td>' +
+          '<td class="num">' + esc(r.start.slice(5)) + (r.end !== r.start ? ' ~ ' + esc(r.end.slice(5)) : '') + '</td><td class="num">' + esc(r.days) + '</td>' +
+          '<td>' + esc(FORM_NAME[r.form] || '') + '</td><td class="reason">' + esc(r.kind === 'apply' ? r.dest : r.place) + '</td>' +
+          '<td class="num" style="font-size:12.5px;color:#64748b">' + esc(r.submitted.slice(5, 16)) + '</td><td>' + st + '</td>' +
+          '<td class="acts"><button class="btn sm" data-t="view" data-i="' + i + '">보기</button>' +
+          (r.kind === 'apply' ? '<button class="btn sm" data-t="notice" data-i="' + i + '">통보서</button>' : '') +
+          '<button class="btn sm" data-t="pr" data-i="' + i + '">인쇄</button><button class="btn sm bad" data-t="del" data-i="' + i + '">삭제</button></td></tr>';
+      }).join('') + '</tbody></table>';
+    $('#tall').onchange = function () { var c = this.checked; list.forEach(function (r) { tsel[r.id] = c; }); drawTrips(); };
+    $('#tall').checked = list.every(function (r) { return tsel[r.id]; });
+  }
+  document.addEventListener('change', function (e) { var c = e.target.closest('[data-tsel]'); if (c) tsel[c.dataset.tsel] = c.checked; });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-t]'); if (!b) return;
+    var r = shownTrips()[+b.dataset.i]; if (!r) return;
+    if (b.dataset.t === 'view') previewTrip(r);
+    if (b.dataset.t === 'notice') noticeSheet(r);
+    if (b.dataset.t === 'pr') printTrips([r]);
+    if (b.dataset.t === 'del') {
+      if (!confirm(r.num + '번 ' + r.name + ' 교외체험학습 ' + (r.kind === 'apply' ? '신청서' : '결과보고서') + '를 삭제할까요?')) return;
+      loading(true, '삭제 중…');
+      call('deleteTrip', PW, r.id).then(function () { loading(false); toast('삭제했습니다.'); loadTrips(); }).catch(function (m) { loading(false); alert(m); });
+    }
+  });
+  function previewTrip(r) {
+    var ov = document.createElement('div'); ov.className = 'ov';
+    ov.innerHTML = '<div class="dlg wide"><h3>' + esc(r.grade + '학년 ' + r.cls + '반 ' + r.num + '번 ' + r.name) + ' — 교외체험학습 ' + (r.kind === 'apply' ? '신청서' : '결과보고서') + '</h3>' +
+      '<p class="help">접수번호 ' + esc(r.code || r.id) + ' · 제출 ' + esc(r.submitted) + '</p><div id="tpv"></div>' +
+      '<div class="dlg-btns"><button class="btn" id="x">닫기</button>' + (r.kind === 'apply' ? '<button class="btn" id="nt">통보서 작성</button>' : '') + '<button class="btn pri" id="pr">인쇄</button></div></div>';
+    document.body.appendChild(ov);
+    tripPages(r).forEach(function (h, i) { var d = document.createElement('div'); d.className = 'pv-host'; if (i) d.style.marginTop = '10px'; d.innerHTML = h; $('#tpv', ov).appendChild(d); AB.fit(d); });
+    $('#x', ov).onclick = function () { ov.remove(); };
+    if ($('#nt', ov)) $('#nt', ov).onclick = function () { ov.remove(); noticeSheet(r); };
+    $('#pr', ov).onclick = function () { ov.remove(); printTrips([r]); };
+    ov.addEventListener('click', function (e) { if (e.target === ov) ov.remove(); });
+  }
+  // 통보서(담임 작성): 양식 위에서 허가 기간·통보일·담임 학년반·누적 사용일을 채움
+  function noticeSheet(r) {
+    var src = r.notice || {};
+    var n = { pstart: src.pstart || r.start, pend: src.pend || r.end, pdays: src.pdays || r.days, date: src.date || '',
+      tgrade: src.tgrade || r.grade, tcls: src.tcls || r.cls, used: src.used || '' };
+    var LBL = { pstart: ['허가 기간 — 시작일', 'date'], pend: ['허가 기간 — 종료일', 'date'], pdays: ['허가 일수', 'num'], date: ['통보일', 'date'],
+      tgrade: ['담임 학년', 'num'], tcls: ['담임 반', 'num'], used: ['금회까지 누적 사용기간 (일)', 'num'] };
+    var ov = document.createElement('div'); ov.className = 'ov';
+    ov.innerHTML = '<div class="dlg wide"><h3>통보서 작성 — ' + esc(r.grade + '학년 ' + r.cls + '반 ' + r.num + '번 ' + r.name) + '</h3>' +
+      '<p class="help">양식 아래쪽 「통보서」의 노란 칸을 눌러 채우세요. 허가 기간·학년반은 신청서 내용으로 미리 채웠습니다. 통보일을 넣고 저장하면 담임 서명이 찍히고 "통보완료"가 됩니다.</p>' +
+      '<div class="pv-host" id="npv"></div>' +
+      (CFG.teacher ? '' : '<p style="color:#b45309;font-size:13.5px;margin:10px 0 0">※ 담임 이름이 비어 있습니다. 결석 신고서 탭 위쪽에서 담임 이름을 저장하면 통보서에 들어갑니다.</p>') +
+      '<div class="dlg-btns">' + (r.notice ? '<button class="btn bad" id="clr" style="margin-right:auto">통보서 비우기</button>' : '') +
+      '<button class="btn" id="x">취소</button><button class="btn pri" id="ok">저장</button></div></div>';
+    document.body.appendChild(ov);
+    var host = $('#npv', ov);
+    function paint() {
+      host.innerHTML = FORMS.tripApply(Object.assign({}, r, { notice: n }), { teacher: CFG.teacher, teacherSig: n.date ? tsig : '', noticeEdit: true });
+      AB.fit(host);
+    }
+    host.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-k]'); if (!b || b.dataset.k.indexOf('n:') !== 0) return;
+      var k = b.dataset.k.slice(2), L = LBL[k];
+      var d = document.createElement('div'); d.className = 'ov'; d.style.zIndex = 900; d.style.alignItems = 'center';
+      d.innerHTML = '<form class="dlg" style="width:min(380px,100%)"><h3>' + esc(L[0]) + '</h3><input id="av" ' + (L[1] === 'date' ? 'type="date"' : 'type="text" inputmode="numeric" maxlength="3"') +
+        ' value="' + esc(n[k] || '') + '" style="width:100%;height:46px;font-size:18px;border:2px solid #cbd5e1;border-radius:10px;padding:0 12px;margin-top:8px">' +
+        (L[1] === 'date' ? '<button type="button" class="btn sm" id="tdy" style="margin-top:8px">오늘</button>' : '') +
+        '<div class="dlg-btns"><button type="button" class="btn" id="ac">닫기</button><button class="btn pri">확인</button></div></form>';
+      document.body.appendChild(d);
+      var inp = $('#av', d); setTimeout(function () { inp.focus(); }, 30);
+      if ($('#tdy', d)) $('#tdy', d).onclick = function () { inp.value = CFG.today; };
+      $('#ac', d).onclick = function () { d.remove(); };
+      $('form', d).onsubmit = function (ev) {
+        ev.preventDefault(); var v = inp.value.trim();
+        if (L[1] === 'num' && v && !/^\d{1,3}$/.test(v)) { inp.style.borderColor = '#b91c1c'; return; }
+        n[k] = v; d.remove(); paint();
+      };
+    });
+    function send(val) {
+      loading(true, '저장 중…');
+      call('saveNotice', PW, r.id, val).then(function () { loading(false); ov.remove(); toast(val ? '통보서를 저장했습니다.' : '통보서를 비웠습니다.'); loadTrips(); }).catch(function (m) { loading(false); alert(m); });
+    }
+    $('#x', ov).onclick = function () { ov.remove(); };
+    if ($('#clr', ov)) $('#clr', ov).onclick = function () { send(null); };
+    $('#ok', ov).onclick = function () { send(n); };
+    paint();
+  }
+  function printTrips(list) {
+    var h = ''; list.forEach(function (r) { h += tripPages(r).join(''); });
+    doPrint(h);
+  }
+
   /* ---------- 담임 서명 ---------- */
   function regSig() {
     AB.signPad({ title: '담임 서명 등록' + (CFG.teacher ? ' — ' + CFG.teacher : ''), sub: '한 번 등록하면 확인서의 "학급담임 (인)" 자리에 자동으로 들어갑니다.', onDone: function (url) {
@@ -373,7 +527,7 @@ var CFG = APP_CFG;
       var map = {}; (att || []).forEach(function (a) { map[a.id] = a.dataUrl; });
       var h = '';
       list.forEach(function (r) {
-        h += AB.render(r, { cfg: CFG, teacherSig: r.state === '확인완료' ? tsig : '' });
+        h += AB.render(r, { cfg: CFG, teacherSig: r.state === '확인완료' ? tsig : '' }) + opPage(r);
         if (withAtt) r.files.forEach(function (f, i) {
           if (map[f]) h += '<div class="att-page"><div class="cap">[증빙서류] ' + esc(r.num + '번 ' + r.name + ' · ' + r.start + ' ~ ' + r.end + ' · ' + (i + 1) + '/' + r.files.length) + '</div><div class="imgw"><img src="' + map[f] + '"></div></div>';
         });

@@ -344,5 +344,5 @@ var AB = (function () {
     return s;
   }
 
-  return { render: render, signPad: signPad, fit: fit, esc: esc, ymd: ymd, STATUS: STATUS, DETAIL: DETAIL, METHODS: METHODS, DOCS: DOCS };
+  return { render: render, signPad: signPad, fit: fit, esc: esc, ymd: ymd, measure: measure, wrap: wrap, STATUS: STATUS, DETAIL: DETAIL, METHODS: METHODS, DOCS: DOCS };
 })();

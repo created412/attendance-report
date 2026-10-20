@@ -18,8 +18,21 @@ function clean(rec) {
     confirm: M[rec.c_method] ? {
       method: M[rec.c_method], metc: rec.c_method === '기타' ? s(rec.c_metc, 20) : '',
       docs, detc: docs.indexOf('etc') >= 0 ? s(rec.c_detc, 20) : '', date: s(rec.c_date, 10)
-    } : null
+    } : null,
+    // 출석의견서(학부모): 출결현황이 '기타'이거나 사유에 '생리'가 있으면 학생 화면에서 함께 작성
+    opinion: rec.opinion ? { who: 'parent', note: s(rec.opinion.note, 30), date: s(rec.opinion.date, 10), pname: s(rec.opinion.pname, 20), sig: String(rec.opinion.sig || '') } : null
   };
+}
+// 교외체험학습: kind = 'apply'(신청서) | 'report'(결과보고서)
+function cleanTrip(kind, rec) {
+  const s = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+  const base = { kind, name: s(rec.name, 20), grade: s(rec.grade, 2), cls: s(rec.cls, 2), num: s(rec.num, 3),
+    start: s(rec.start, 10), end: s(rec.end, 10), days: s(rec.days, 3), form: s(rec.form, 10), wdate: s(rec.wdate, 10),
+    pname: s(rec.pname, 20), sname: s(rec.sname, 20), sigP: String(rec.sigP || ''), sigS: String(rec.sigS || '') };
+  if (kind === 'apply') return Object.assign(base, { phone: s(rec.phone, 20), rule: s(rec.rule, 1), dest: s(rec.dest, 40), lodging: s(rec.lodging, 30),
+    gname: s(rec.gname, 20), grel: s(rec.grel, 10), gphone: s(rec.gphone, 20), lname: s(rec.lname, 20), lrel: s(rec.lrel, 10), lphone: s(rec.lphone, 20),
+    purpose: s(rec.purpose, 100), plan: s(rec.plan, 400) });
+  return Object.assign(base, { place: s(rec.place, 50), title: s(rec.title, 60), body: s(rec.body, 4000) });
 }
 function inMonth(r, ym, basis) {
   if (basis === 'all' || !ym) return true;
@@ -29,7 +42,9 @@ function inMonth(r, ym, basis) {
 const byNum = (a, b) => (Number(a.grade) - Number(b.grade)) || (Number(a.cls) - Number(b.cls)) || (Number(a.num) - Number(b.num)) || (a.start < b.start ? -1 : 1);
 
 let API;
-if (C.firebase && C.firebase.apiKey) {
+const LOCAL_DEMO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]demo=1/.test(location.search + (sessionStorage.getItem('force-demo') ? '&demo=1' : ''));
+if (LOCAL_DEMO) sessionStorage.setItem('force-demo', '1');
+if (C.firebase && C.firebase.apiKey && !LOCAL_DEMO) {
   const V = '10.12.5', base = `https://www.gstatic.com/firebasejs/${V}/`;
   const [{ initializeApp }, fs, au] = await Promise.all([
     import(base + 'firebase-app.js'), import(base + 'firebase-firestore.js'), import(base + 'firebase-auth.js')
@@ -92,7 +107,25 @@ if (C.firebase && C.firebase.apiKey) {
       catch (e) { return { id, error: String(e) }; }
     }))),
     saveTeacherSig: wrap(async (_, url) => { await fs.setDoc(fs.doc(db, 'settings', 'teacher'), { sig: url || '' }, { merge: true }); return true; }),
-    saveTeacherName: wrap(async (_, name) => { await fs.setDoc(fs.doc(db, 'settings', 'teacher'), { name: String(name || '').trim().slice(0, 20) }, { merge: true }); return true; })
+    saveTeacherName: wrap(async (_, name) => { await fs.setDoc(fs.doc(db, 'settings', 'teacher'), { name: String(name || '').trim().slice(0, 20) }, { merge: true }); return true; }),
+    getTeacher: wrap(async () => { const t = await fs.getDoc(fs.doc(db, 'settings', 'teacher')); return t.exists() ? t.data() : {}; }),
+    submitTrip: wrap(async (kind, rec) => {
+      const r = cleanTrip(kind, rec), code = makeCode();
+      await fs.setDoc(fs.doc(fs.collection(db, 'trips')), { ...r, code, state: '접수', notice: null, submitted: fs.serverTimestamp() });
+      return { id: code, time: fmt(new Date()), name: r.name };
+    }),
+    listTrips: wrap(async (_, ym, basis) => {
+      const snap = await fs.getDocs(fs.query(fs.collection(db, 'trips'), fs.orderBy('submitted', 'desc')));
+      const items = [];
+      snap.forEach((d) => {
+        const v = d.data(), t = v.submitted && v.submitted.toDate ? v.submitted.toDate() : new Date();
+        const r = { ...v, id: d.id, submitted: fmt(t) };
+        if (inMonth(r, ym, basis)) items.push(r);
+      });
+      return items.sort(byNum);
+    }),
+    saveNotice: wrap(async (_, id, notice) => { await fs.updateDoc(fs.doc(db, 'trips', id), { notice: notice || null, state: notice && notice.date ? '통보완료' : '접수' }); return true; }),
+    deleteTrip: wrap(async (_, id) => { await fs.deleteDoc(fs.doc(db, 'trips', id)); return true; })
   };
 } else {
   /* 체험 모드: 이 브라우저에만 저장 (교사 비밀번호 1234) */
@@ -122,7 +155,20 @@ if (C.firebase && C.firebase.apiKey) {
     deleteReport: async (_, id) => { auth(); put(all().filter((r) => r.id !== id)); return true; },
     getAttachments: async (_, ids) => (ids || []).map((id) => ({ id, dataUrl: localStorage.getItem('demo-file-' + id) || '' })),
     saveTeacherSig: async (_, url) => { auth(); localStorage.setItem(S, url || ''); return true; },
-    saveTeacherName: async (_, name) => { auth(); localStorage.setItem('demo-tname', String(name || '').trim().slice(0, 20)); return true; }
+    saveTeacherName: async (_, name) => { auth(); localStorage.setItem('demo-tname', String(name || '').trim().slice(0, 20)); return true; },
+    getTeacher: async () => { auth(); return { sig: localStorage.getItem(S) || '', name: localStorage.getItem('demo-tname') || '' }; },
+    submitTrip: async (kind, rec) => {
+      const a = JSON.parse(localStorage.getItem('demo-trips') || '[]'), r = cleanTrip(kind, rec), code = makeCode();
+      a.push({ ...r, id: 't' + Date.now(), code, state: '접수', notice: null, submitted: fmt(new Date()) });
+      localStorage.setItem('demo-trips', JSON.stringify(a)); return { id: code, time: fmt(new Date()), name: r.name };
+    },
+    listTrips: async (_, ym, basis) => { auth(); return JSON.parse(localStorage.getItem('demo-trips') || '[]').filter((r) => inMonth(r, ym, basis)).sort(byNum); },
+    saveNotice: async (_, id, notice) => {
+      auth(); const a = JSON.parse(localStorage.getItem('demo-trips') || '[]');
+      a.forEach((r) => { if (r.id === id) { r.notice = notice || null; r.state = notice && notice.date ? '통보완료' : '접수'; } });
+      localStorage.setItem('demo-trips', JSON.stringify(a)); return true;
+    },
+    deleteTrip: async (_, id) => { auth(); localStorage.setItem('demo-trips', JSON.stringify(JSON.parse(localStorage.getItem('demo-trips') || '[]').filter((r) => r.id !== id))); return true; }
   };
 }
 window.API = API;

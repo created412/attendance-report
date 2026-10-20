@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>교외체험학습 신청서·결과보고서</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sheet.css?v=202610200944">
+<script src="config.js?v=202610200944"></script>
+<script src="assets/sheet.js?v=202610200944"></script>
+<script src="assets/forms.js?v=202610200944"></script>
+<script type="module" src="assets/api.js?v=202610200944"></script>
+<style>
+  :root{--pri:#1d4ed8;--pri-d:#1e3a8a;--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#eef2f7;--ok:#047857;--warn:#b45309}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR','Malgun Gothic',-apple-system,sans-serif;-webkit-text-size-adjust:100%}
+  .top{background:var(--pri-d);color:#fff;padding:14px 16px 12px}
+  .top h1{margin:0;font-size:19px;letter-spacing:-.02em}
+  .top p{margin:3px 0 0;font-size:13px;opacity:.85}
+  .top .home{float:right;color:#fff;font-size:13px;text-decoration:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 9px;margin-top:-1px}
+  main{max-width:860px;margin:0 auto;padding:12px 12px 120px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+  .steps{display:flex;gap:10px;font-size:13.5px;color:var(--sub);line-height:1.45}
+  .steps div{flex:1;display:flex;gap:8px;align-items:flex-start}
+  .steps i{font-style:normal;flex:none;width:22px;height:22px;border-radius:50%;background:#dbeafe;color:var(--pri);font-weight:700;display:grid;place-items:center;font-size:12px;margin-top:1px}
+  .steps b{color:var(--ink)}
+  .prog{display:flex;align-items:center;gap:10px;margin:2px 2px 10px;font-size:13px;color:var(--sub)}
+  .prog .bar{flex:1;height:8px;border-radius:99px;background:#dbe3ee;overflow:hidden}
+  .prog .bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,#3b82f6,var(--pri));transition:width .3s}
+  .prog b{color:var(--ink)}
+  .paper-host{position:relative;width:100%;overflow:hidden;border-radius:6px;box-shadow:0 2px 14px rgba(15,23,42,.14);background:#fff}
+  .hint{font-size:12.5px;color:var(--sub);margin:8px 2px 14px}
+  .attach h2{font-size:15px;margin:0 0 4px}
+  .op-card{margin-top:16px;border-color:#f59e0b;background:#fffbeb}
+  .op-card h2{font-size:16px;margin:0 0 4px;color:#92400e}
+  .op-card p{margin:0;font-size:13.5px;color:#92400e;line-height:1.5}
+  #opHost{margin-bottom:14px}
+  .attach p{font-size:13px;color:var(--sub);margin:0 0 10px;line-height:1.5}
+  .thumbs{display:flex;gap:8px;flex-wrap:wrap}
+  .thumb{position:relative;width:86px;height:86px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .thumb button{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(15,23,42,.75);color:#fff;font-size:14px;cursor:pointer}
+  .addph{width:86px;height:86px;border-radius:10px;border:2px dashed #94a3b8;display:grid;place-items:center;color:var(--sub);font-size:12.5px;text-align:center;cursor:pointer;background:#f8fafc}
+  .dock{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:50}
+  .dock>div{max-width:860px;margin:0 auto;display:flex;gap:8px;width:100%}
+  .btn{height:54px;border-radius:12px;border:1px solid #cbd5e1;background:#fff;color:var(--ink);font-size:16.5px;font-weight:700;cursor:pointer;font-family:inherit;padding:0 14px}
+  .btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+  .btn:disabled{opacity:.45;cursor:default}
+  .grow{flex:1}
+
+  /* 입력 시트 */
+  .ms-ov{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:900;display:flex;align-items:flex-end;justify-content:center}
+  .ms{background:#fff;width:min(560px,100%);border-radius:18px 18px 0 0;padding:18px 18px calc(16px + env(safe-area-inset-bottom));animation:up .2s ease-out;max-height:92vh;overflow:auto}
+  @media (min-width:700px){.ms-ov{align-items:center}.ms{border-radius:18px}}
+  @keyframes up{from{transform:translateY(30px);opacity:.4}}
+  .ms small{color:var(--pri);font-weight:700;font-size:12.5px}
+  .ms h3{margin:2px 0 4px;font-size:20px}
+  .ms .help{margin:0 0 14px;color:var(--sub);font-size:14px;line-height:1.5}
+  .ms input,.ms textarea{width:100%;font-size:20px;padding:13px 14px;border:2px solid #cbd5e1;border-radius:12px;font-family:inherit;color:var(--ink);background:#fff}
+  .ms textarea{min-height:110px;resize:vertical;font-size:17px;line-height:1.5}
+  .ms input:focus,.ms textarea:focus{outline:0;border-color:var(--pri)}
+  .ms .cnt{text-align:right;font-size:12.5px;color:var(--sub);margin-top:4px}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .opt{height:58px;border-radius:12px;border:2px solid #cbd5e1;background:#fff;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)}
+  .opt.on{border-color:var(--pri);background:#eff6ff;color:var(--pri)}
+  .opt.on::before{content:'✓ '}
+  .ms-btns{display:flex;gap:8px;margin-top:16px}
+  .err{color:#b91c1c;font-size:13.5px;margin-top:8px;min-height:1em}
+
+  /* 확인·영수증 */
+  .sum{width:100%;border-collapse:collapse;font-size:15px;margin:6px 0 4px}
+  .sum th{text-align:left;color:var(--sub);font-weight:500;padding:7px 0;width:92px;vertical-align:top}
+  .sum td{padding:7px 0;border-bottom:1px solid #f1f5f9}
+  .sum img{height:34px;vertical-align:middle;background:#f8fafc;border-radius:4px}
+  .rcpt{max-width:520px;margin:28px auto;text-align:center}
+  .rcpt .ok{width:64px;height:64px;border-radius:50%;background:#d1fae5;color:var(--ok);font-size:34px;display:grid;place-items:center;margin:0 auto 10px}
+  .rcpt h2{margin:0 0 4px;font-size:22px}
+  .rcpt .no{font-size:28px;font-weight:800;letter-spacing:.04em;color:var(--pri-d);margin:6px 0 2px;font-variant-numeric:tabular-nums}
+  .toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:11px 16px;border-radius:10px;font-size:14.5px;z-index:1200;max-width:90vw;text-align:center}
+  .loading{position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:1300;display:grid;place-items:center;font-size:17px;font-weight:700;color:var(--pri-d)}
+  @media (max-width:520px){.steps{flex-direction:column;gap:6px}}
+
+  .tabs{display:flex;gap:8px;margin-bottom:10px}
+  .tab{flex:1;height:52px;border-radius:12px;border:2px solid #cbd5e1;background:#fff;font-size:16px;font-weight:700;color:var(--sub);cursor:pointer;font-family:inherit}
+  .tab small{font-weight:400;font-size:12px}
+  .tab.on{border-color:var(--pri);background:#eff6ff;color:var(--pri)}
+  .notice{font-size:13.5px;color:#92400e;background:#fffbeb;border-color:#fcd34d;line-height:1.55}
+  #pages{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="top"><a href="./" class="home">← 처음으로</a><h1>교외체험학습 신청서 · 결과보고서</h1><p>학교장허가 교외체험학습 — 학생·보호자 전자 서명 제출</p></div>
+<main id="app">
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab" data-kind="apply" role="tab">① 신청서 <small>(체험학습 전)</small></button>
+    <button type="button" class="tab" data-kind="report" role="tab">② 결과보고서 <small>(다녀온 후)</small></button>
+  </div>
+  <div class="card notice" id="notice"></div>
+  <div class="prog"><div class="bar"><span id="bar"></span></div><span><b id="done">0</b>/<span id="total">0</span> 항목</span></div>
+  <div id="pages"></div>
+  <p class="hint">※ 노란 칸을 누르거나 아래 <b>다음 빈칸 작성</b>을 누르세요. 아래쪽 통보서와 결재란은 담임선생님이 작성합니다.</p>
+</main>
+<div class="dock"><div>
+  <button class="btn grow" id="nextBtn">다음 빈칸 작성 ▶</button>
+  <button class="btn pri grow" id="submitBtn">제출하기</button>
+</div></div>
+
+<script>
+var CFG = APP_CFG;
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = AB.esc;
+  var FORM_OPTS = [{ v: 'family', l: '가족동반여행' }, { v: 'relative', l: '친·인척 방문' }, { v: 'tour', l: '답사·견학 활동' }, { v: 'exp', l: '체험활동' }];
+  var RULE_OPTS = [{ v: 'o', l: '○ 확인했습니다' }, { v: 'x', l: '× 확인하지 않았습니다' }];
+  var COMMON = [
+    { k: 'name', label: '성명', type: 'text', max: 10, help: '학생 이름' },
+    { k: 'grade', label: '학년', type: 'number' }, { k: 'cls', label: '반', type: 'number' }, { k: 'num', label: '번호', type: 'number' }
+  ];
+  var SIGN = [
+    { k: 'pname', label: '보호자 성명 (서명란)', type: 'text', max: 10 }, { k: 'sigP', label: '보호자 서명', type: 'sign' },
+    { k: 'sname', label: '학생 성명 (서명란)', type: 'text', max: 10 }, { k: 'sigS', label: '학생 서명', type: 'sign' }
+  ];
+  var KINDS = {
+    apply: {
+      title: '신청서', draft: 'trip-apply-v1',
+      notice: '체험학습 <b>3일 전까지</b> 제출하세요. 제출했다고 허가된 것이 아니며, 담임선생님께 <b>최종 허가 통보(또는 문자)</b>를 받은 뒤 실시해야 합니다.',
+      fields: COMMON.concat([
+        { k: 'phone', label: '학생 휴대폰', type: 'tel' },
+        { k: 'start', label: '신청 기간 — 시작일', type: 'date' }, { k: 'end', label: '신청 기간 — 종료일', type: 'date' },
+        { k: 'days', label: '신청 기간 — 일수', type: 'number', help: '주말을 빼고 자동 계산했습니다. 공휴일 등이 있으면 고쳐 주세요. (연간 20일 이내)' },
+        { k: 'rule', label: '세부 규칙 및 불허기간 확인', type: 'choice', opts: RULE_OPTS, help: '우리 학교 학교장허가 교외체험학습 세부 규칙과 불허기간을 확인했나요? 필요하면 담임선생님과 미리 협의하세요.' },
+        { k: 'form', label: '학습형태', type: 'choice', opts: FORM_OPTS },
+        { k: 'dest', label: '목적지', type: 'text', max: 40 },
+        { k: 'lodging', label: '숙박장소 (숙박 시)', type: 'text', max: 30, optional: true, help: '숙박하지 않으면 비워 두세요.' },
+        { k: 'gname', label: '보호자명', type: 'text', max: 10 }, { k: 'grel', label: '보호자 관계', type: 'text', max: 6, help: '예) 부, 모' },
+        { k: 'gphone', label: '보호자 휴대폰', type: 'tel' },
+        { k: 'lname', label: '인솔자명', type: 'text', max: 10, help: '보호자가 인솔하면 같은 이름을 쓰세요.' }, { k: 'lrel', label: '인솔자 관계', type: 'text', max: 6 },
+        { k: 'lphone', label: '인솔자 휴대폰', type: 'tel' },
+        { k: 'purpose', label: '목적', type: 'textarea', max: 90 },
+        { k: 'plan', label: '교외체험학습 계획', type: 'textarea', max: 380, help: '일정별 계획을 적으세요. 예) 1일차: ○○ 견학 / 2일차: ○○ 체험' },
+        { k: 'wdate', label: '신청일', type: 'date' }
+      ]).concat(SIGN),
+      render: function (r, o) { return [FORMS.tripApply(r, o)]; }
+    },
+    report: {
+      title: '결과보고서', draft: 'trip-report-v1',
+      notice: '체험학습이 끝난 뒤 <b>7일 이내</b>에 제출하세요. 느낀 점·배운 점이 길면 <b>별지</b>가 자동으로 이어 붙습니다.',
+      fields: COMMON.concat([
+        { k: 'start', label: '교외체험학습 기간 — 시작일', type: 'date' }, { k: 'end', label: '교외체험학습 기간 — 종료일', type: 'date' },
+        { k: 'days', label: '교외체험학습 기간 — 일수', type: 'number', help: '주말을 빼고 자동 계산했습니다. 다르면 고쳐 주세요.' },
+        { k: 'place', label: '교외체험학습 장소', type: 'text', max: 50 },
+        { k: 'form', label: '학습형태', type: 'choice', opts: FORM_OPTS },
+        { k: 'title', label: '제목', type: 'text', max: 60 },
+        { k: 'body', label: '느낀 점 · 배운 점', type: 'textarea', max: 3800, big: true, help: '각 일정별로 느낀 점, 배운 점 등을 학생이 직접 기록합니다. 줄을 바꾸려면 엔터를 누르세요.' },
+        { k: 'wdate', label: '제출일', type: 'date' }
+      ]).concat(SIGN),
+      render: function (r, o) { return FORMS.tripReport(r, o); }
+    }
+  };
+  var kind = /report/.test(location.hash) ? 'report' : 'apply', K, rec, byKey, guided = false, queue = [], cur = null, daysAuto = true;
+  function blank() { var r = {}; K.fields.forEach(function (f) { r[f.k] = ''; }); return r; }
+  function load() {
+    K = KINDS[kind]; byKey = {}; K.fields.forEach(function (f, i) { f.i = i; byKey[f.k] = f; });
+    rec = blank(); daysAuto = true;
+    try { var d = JSON.parse(localStorage.getItem(K.draft) || 'null'); if (d) { Object.assign(rec, d.rec); daysAuto = d.daysAuto !== false; } } catch (e) {}
+    // 결과보고서: 마지막으로 낸 신청서 내용으로 미리 채움
+    if (kind === 'report' && !rec.name) {
+      try { var last = JSON.parse(localStorage.getItem('trip-last-apply') || 'null'); if (last) ['name', 'grade', 'cls', 'num', 'start', 'end', 'days', 'form'].forEach(function (k) { rec[k] = last[k] || ''; }); if (last) { rec.place = last.dest || ''; rec.pname = last.gname || ''; rec.sname = last.name || ''; } } catch (e) {}
+    }
+    document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('on', t.dataset.kind === kind); t.setAttribute('aria-selected', t.dataset.kind === kind); });
+    $('#notice').innerHTML = K.notice;
+    render();
+  }
+  var isEmpty = function (k) { var v = rec[k]; return v === '' || v == null; };
+  var isReq = function (k) { var f = byKey[k]; return f && !f.optional; };
+  var missing = function () { return K.fields.filter(function (f) { return isReq(f.k) && isEmpty(f.k); }); };
+  function save() { try { localStorage.setItem(K.draft, JSON.stringify({ rec: rec, daysAuto: daysAuto })); } catch (e) {} }
+  function render() {
+    var box = $('#pages'); box.innerHTML = '';
+    K.render(rec, { editable: true, required: isReq, cur: cur }).forEach(function (h, i) {
+      var d = document.createElement('div'); d.className = 'paper-host'; if (i) d.style.marginTop = '12px'; d.innerHTML = h; box.appendChild(d); AB.fit(d);
+    });
+    var req = K.fields.filter(function (f) { return isReq(f.k); }), done = req.filter(function (f) { return !isEmpty(f.k); }).length;
+    $('#done').textContent = done; $('#total').textContent = req.length; $('#bar').style.width = (done / req.length * 100) + '%';
+    $('#nextBtn').textContent = done === req.length ? '모두 작성됨 ✓' : '다음 빈칸 작성 ▶';
+    save();
+  }
+  window.addEventListener('resize', function () { document.querySelectorAll('#pages .paper-host').forEach(function (d) { AB.fit(d); }); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { render(); });
+
+  document.querySelectorAll('.tab').forEach(function (t) { t.onclick = function () { kind = t.dataset.kind; history.replaceState(null, '', '#' + kind); load(); window.scrollTo(0, 0); }; });
+  $('#pages').addEventListener('click', function (e) { var b = e.target.closest('[data-k]'); if (b && byKey[b.dataset.k]) { guided = false; open(b.dataset.k); } });
+  $('#nextBtn').onclick = function () { var m = missing(); if (!m.length) return toast('모든 항목을 작성했습니다. 제출하기를 눌러 주세요.'); guided = true; open(m[0].k); };
+  function next() {
+    cur = null;
+    if (queue.length) return open(queue.shift());
+    if (!guided) return render();
+    var m = missing(); if (m.length) return open(m[0].k);
+    guided = false; render(); toast('모든 항목을 작성했습니다. 내용을 확인하고 제출해 주세요.');
+  }
+  function weekdays(a, b) {
+    var s = new Date(a + 'T00:00:00'), e = new Date(b + 'T00:00:00'), n = 0;
+    if (isNaN(s) || isNaN(e) || e < s) return '';
+    for (var d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) { var w = d.getDay(); if (w && w !== 6) n++; }
+    return String(n);
+  }
+
+  function open(k) {
+    var f = byKey[k]; cur = k; render();
+    if (f.type === 'sign') {
+      var nk = k === 'sigP' ? 'pname' : 'sname';
+      if (!rec[nk]) return open(nk);
+      AB.signPad({
+        title: (k === 'sigP' ? '보호자 서명 — ' : '학생 서명 — ') + rec[nk],
+        sub: k === 'sigP' ? '보호자께서 직접 서명해 주세요.' : '학생 본인이 직접 서명해 주세요.',
+        onDone: function (url) { rec[k] = url; next(); },
+        onCancel: function () { guided = false; queue = []; cur = null; render(); }
+      });
+      return;
+    }
+    var ov = document.createElement('div'), body = ''; ov.className = 'ms-ov';
+    if (f.type === 'choice') {
+      body = '<div class="opts">' + f.opts.map(function (o) { return '<button type="button" class="opt' + (rec[k] === o.v ? ' on' : '') + '" data-o="' + o.v + '">' + esc(o.l) + '</button>'; }).join('') + '</div>';
+    } else if (f.type === 'textarea') {
+      body = '<textarea id="fv" maxlength="' + f.max + '"' + (f.big ? ' style="min-height:46vh"' : '') + '></textarea><div class="cnt"><span id="cn">0</span>/' + f.max + '자' +
+        (k === 'body' ? ' · <span id="pg"></span>' : '') + '</div>';
+    } else {
+      var t = f.type === 'number' ? 'text" inputmode="numeric" pattern="[0-9]*' : f.type === 'tel' ? 'tel" inputmode="tel' : f.type;
+      body = '<input id="fv" type="' + t + '"' + (f.max ? ' maxlength="' + f.max + '"' : '') + ' autocomplete="off">';
+    }
+    ov.innerHTML = '<div class="ms" role="dialog" aria-modal="true"><small>' + K.title + ' · 항목 ' + (f.i + 1) + ' / ' + K.fields.length + '</small><h3>' + f.label + '</h3>' +
+      (f.help ? '<p class="help">' + f.help + '</p>' : '') + body + '<div class="err" id="er"></div><div class="ms-btns"><button type="button" class="btn grow" id="cc">닫기</button>' +
+      (f.type === 'choice' ? '' : '<button type="button" class="btn pri grow" id="ok">' + (guided ? '확인 · 다음 ▶' : '확인') + '</button>') + '</div></div>';
+    document.body.appendChild(ov);
+    var inp = ov.querySelector('#fv'), er = ov.querySelector('#er');
+    function close() { ov.remove(); }
+    ov.querySelector('#cc').onclick = function () { close(); guided = false; queue = []; cur = null; render(); };
+    ov.querySelectorAll('.opt').forEach(function (b) { b.onclick = function () { rec[k] = b.dataset.o; close(); next(); }; });
+    if (inp) {
+      var v = rec[k];
+      if (!v && (k === 'start' || k === 'wdate')) v = CFG.today;
+      if (!v && k === 'end') v = rec.start || CFG.today;
+      if (!v && k === 'days' && rec.start && rec.end) v = weekdays(rec.start, rec.end);
+      if (!v && k === 'pname') v = rec.gname || '';
+      if (!v && k === 'sname') v = rec.name || '';
+      if (!v && k === 'lname') v = rec.gname || '';
+      if (!v && k === 'lrel') v = rec.grel || '';
+      if (!v && k === 'lphone') v = rec.gphone || '';
+      inp.value = v || '';
+      if (f.type === 'textarea') {
+        var cn = ov.querySelector('#cn'), pg = ov.querySelector('#pg');
+        var upd = function () { cn.textContent = inp.value.length; if (pg) { var n = FORMS.reportPages(inp.value); pg.textContent = n > 1 ? '결과보고서 + 별지 ' + (n - 1) + '장' : '결과보고서 1장'; } };
+        inp.oninput = upd; upd();
+      }
+      setTimeout(function () { try { inp.focus(); } catch (e) {} }, 60);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter' && f.type !== 'textarea') { e.preventDefault(); ov.querySelector('#ok').click(); } });
+    }
+    var ok = ov.querySelector('#ok');
+    if (ok) ok.onclick = function () {
+      var val = inp.value.trim();
+      if (!val && !isReq(k)) { rec[k] = ''; close(); return next(); }
+      if (!val) { er.textContent = '내용을 입력해 주세요.'; return; }
+      if (f.type === 'number') { val = val.replace(/[^0-9]/g, ''); if (!val || +val > 99 || (+val < 1 && k !== 'days')) { er.textContent = '숫자를 바르게 입력해 주세요.'; return; } val = String(+val); }
+      if (k === 'end' && rec.start && val < rec.start) { er.textContent = '종료일이 시작일보다 빠릅니다.'; return; }
+      if (k === 'start' && rec.end && val > rec.end) rec.end = '';
+      if (k === 'days') daysAuto = val === weekdays(rec.start, rec.end);
+      rec[k] = val;
+      if ((k === 'start' || k === 'end') && rec.start && rec.end && (daysAuto || !rec.days)) { rec.days = weekdays(rec.start, rec.end); daysAuto = true; }
+      close(); next();
+    };
+  }
+
+  /* 제출 */
+  $('#submitBtn').onclick = function () {
+    var m = missing();
+    if (m.length) { toast('아직 작성하지 않은 항목: ' + m.map(function (f) { return f.label; }).join(', ')); guided = true; return open(m[0].k); }
+    var label = function (opts, v) { var o = opts.filter(function (x) { return x.v === v; })[0]; return o ? o.l : ''; };
+    var rows = [['구분', '교외체험학습 ' + K.title], ['학생', rec.grade + '학년 ' + rec.cls + '반 ' + rec.num + '번 ' + rec.name],
+      ['기간', rec.start + ' ~ ' + rec.end + ' (' + rec.days + '일간)'], ['학습형태', label(FORM_OPTS, rec.form)]];
+    if (kind === 'apply') rows.push(['목적지', rec.dest], ['세부 규칙 확인', label(RULE_OPTS, rec.rule)]);
+    else rows.push(['제목', rec.title], ['분량', FORMS.reportPages(rec.body) > 1 ? '결과보고서 + 별지 ' + (FORMS.reportPages(rec.body) - 1) + '장' : '결과보고서 1장']);
+    var ov = document.createElement('div'); ov.className = 'ms-ov';
+    ov.innerHTML = '<div class="ms" role="dialog" aria-modal="true"><small>최종 확인</small><h3>입력하신 내용이 맞습니까?</h3><p class="help">제출 후에는 수정할 수 없습니다.</p><table class="sum">' +
+      rows.map(function (r) { return '<tr><th>' + r[0] + '</th><td>' + esc(r[1]) + '</td></tr>'; }).join('') +
+      '<tr><th>서명</th><td>보호자 ' + esc(rec.pname) + ' <img src="' + rec.sigP + '" alt=""> · 학생 ' + esc(rec.sname) + ' <img src="' + rec.sigS + '" alt=""></td></tr></table>' +
+      '<div class="ms-btns"><button type="button" class="btn grow" id="cc">수정하기</button><button type="button" class="btn pri grow" id="go">제출하기</button></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#cc').onclick = function () { ov.remove(); };
+    ov.querySelector('#go').onclick = function () {
+      ov.remove();
+      var ld = document.createElement('div'); ld.className = 'loading'; ld.textContent = '제출하는 중입니다…'; document.body.appendChild(ld);
+      apiReady.then(function (api) { return api.submitTrip(kind, rec); })
+        .then(function (res) { ld.remove(); receipt(res); })
+        .catch(function (err) { ld.remove(); alert('제출하지 못했습니다.\n' + (err && err.message || err)); });
+    };
+  };
+  function receipt(res) {
+    var done = rec, title = K.title;
+    if (kind === 'apply') { try { localStorage.setItem('trip-last-apply', JSON.stringify({ name: done.name, grade: done.grade, cls: done.cls, num: done.num, start: done.start, end: done.end, days: done.days, form: done.form, dest: done.dest, gname: done.gname })); } catch (e) {} }
+    try { localStorage.removeItem(K.draft); } catch (e) {}
+    document.querySelector('.dock').style.display = 'none';
+    $('#app').innerHTML = '<div class="card rcpt"><div class="ok">✓</div><h2>' + title + ' 제출이 완료되었습니다</h2><p style="color:#475569;margin:0">담임선생님께 전달되었습니다.</p>' +
+      '<div style="margin-top:16px;font-size:13px;color:#64748b">접수번호</div><div class="no">' + esc(res.id) + '</div>' +
+      '<table class="sum" style="text-align:left;margin-top:12px"><tr><th>접수일시</th><td>' + esc(res.time) + '</td></tr><tr><th>학생</th><td>' + esc(done.num + '번 ' + done.name) + '</td></tr>' +
+      '<tr><th>기간</th><td>' + esc(done.start + ' ~ ' + done.end) + '</td></tr></table>' +
+      (kind === 'apply' ? '<p style="font-size:13.5px;color:#b45309;font-weight:700">※ 담임선생님의 최종 허가 통보(또는 문자)를 받은 뒤 체험학습을 실시하세요.</p>' : '') +
+      '<p style="font-size:13px;color:#64748b">이 화면을 캡처해 두면 제출 확인용으로 쓸 수 있습니다.</p>' +
+      '<div class="ms-btns"><button class="btn grow" id="see">제출한 ' + title + ' 보기</button><button class="btn pri grow" id="again">처음으로</button></div></div><div id="copy"></div>';
+    $('#see').onclick = function () {
+      var c = $('#copy'); c.innerHTML = '';
+      KINDS[kind].render(done, {}).forEach(function (h) { var d = document.createElement('div'); d.className = 'paper-host'; d.style.marginBottom = '12px'; d.innerHTML = h; c.appendChild(d); AB.fit(d); });
+      c.scrollIntoView({ behavior: 'smooth' });
+    };
+    $('#again').onclick = function () { location.href = './'; };
+    window.scrollTo(0, 0);
+  }
+
+  var tt;
+  function toast(msg) { var t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; clearTimeout(tt); tt = setTimeout(function () { t.remove(); }, 3200); }
+
+  apiReady.then(function (api) {
+    if (api.mode !== 'demo') return;
+    var b = document.createElement('div'); b.style.cssText = 'background:#fef3c7;color:#92400e;font-size:13px;padding:8px 16px;text-align:center';
+    b.textContent = '체험 모드 — 제출 내용은 이 기기에만 저장됩니다.'; $('.top').after(b);
+  });
+  load();
+})();
+</script>
+</body>
+</html>

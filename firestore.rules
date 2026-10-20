@@ -11,7 +11,7 @@ service cloud.firestore {
     match /reports/{rid} {
       allow create: if request.resource.data.keys().hasOnly(
             ['status', 'detail', 'grade', 'cls', 'num', 'name', 'start', 'sp', 'end', 'ep', 'days', 'pcount', 'reason', 'wdate', 'sname', 'pname',
-             'sigS', 'sigP', 'fileCount', 'code', 'state', 'confirm', 'submitted'])
+             'sigS', 'sigP', 'fileCount', 'code', 'state', 'confirm', 'opinion', 'submitted'])
         && request.resource.data.status in ['질병', '인정', '기타']
         && request.resource.data.detail is list && request.resource.data.detail.size() <= 4
         && str(request.resource.data.grade, 2) && str(request.resource.data.cls, 2)
@@ -24,6 +24,7 @@ service cloud.firestore {
         && str(request.resource.data.sigS, 60000) && str(request.resource.data.sigP, 60000)
         && request.resource.data.fileCount is int && request.resource.data.fileCount <= 3
         && request.resource.data.state == '접수' && (request.resource.data.confirm == null || request.resource.data.confirm is map)
+        && (!('opinion' in request.resource.data) || request.resource.data.opinion == null || request.resource.data.opinion is map)
         && request.resource.data.submitted == request.time;
       allow read, update, delete: if isTeacher();
 
@@ -34,6 +35,22 @@ service cloud.firestore {
           && str(request.resource.data.dataUrl, 1000000);
         allow read, delete: if isTeacher();
       }
+    }
+
+    // 교외체험학습 신청서·결과보고서: 학생은 제출만, 담임만 조회·통보서 작성·삭제
+    match /trips/{tid} {
+      allow create: if request.resource.data.kind in ['apply', 'report']
+        && request.resource.data.keys().hasOnly(
+            ['kind', 'name', 'grade', 'cls', 'num', 'start', 'end', 'days', 'form', 'wdate', 'pname', 'sname', 'sigP', 'sigS',
+             'phone', 'rule', 'dest', 'lodging', 'gname', 'grel', 'gphone', 'lname', 'lrel', 'lphone', 'purpose', 'plan',
+             'place', 'title', 'body', 'code', 'state', 'notice', 'submitted'])
+        && str(request.resource.data.name, 20) && str(request.resource.data.grade, 2) && str(request.resource.data.cls, 2)
+        && str(request.resource.data.sigS, 60000) && str(request.resource.data.sigP, 60000)
+        && (!('plan' in request.resource.data) || str(request.resource.data.plan, 400))
+        && (!('body' in request.resource.data) || str(request.resource.data.body, 4000))
+        && request.resource.data.state == '접수' && request.resource.data.notice == null
+        && request.resource.data.submitted == request.time;
+      allow read, update, delete: if isTeacher();
     }
 
     match /settings/{doc} {

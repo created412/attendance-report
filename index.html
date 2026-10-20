@@ -6,8 +6,8 @@
 <title>결석 신고서</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
-<script src="config.js?v=202610080847"></script>
-<script type="module" src="assets/api.js?v=202610080847"></script>
+<script src="config.js?v=202610200944"></script>
+<script type="module" src="assets/api.js?v=202610200944"></script>
 <style>
   :root{--pri:#1d4ed8;--pri-d:#1e3a8a;--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#eef2f7}
   *{box-sizing:border-box}
@@ -15,7 +15,13 @@
   header{background:var(--pri-d);color:#fff;padding:34px 20px 70px;text-align:center}
   header h1{margin:0;font-size:28px;letter-spacing:-.02em}
   header p{margin:8px 0 0;font-size:15px;opacity:.85}
-  main{max-width:760px;margin:-46px auto 0;padding:0 16px 40px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  main{max-width:760px;margin:-46px auto 0;padding:0 16px 40px;display:grid;grid-template-columns:1fr 1fr;gap:14px;grid-template-areas:'demo demo' 'st tc' 'tr tc' 'note note'}
+  .demo{grid-area:demo} .st{grid-area:st} .tc{grid-area:tc} .tr{grid-area:tr} .note{grid-area:note}
+  .tr .ic{background:#ccfbf1}
+  .go.teal{background:#0f766e}
+  .go.teal.ghost{background:#fff;color:#0f766e;border:2px solid #0f766e}
+  .two{display:flex;gap:8px}
+  .two .go{font-size:15.5px}
   .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 20px;box-shadow:0 6px 24px rgba(15,23,42,.08);display:flex;flex-direction:column}
   .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:26px;margin-bottom:12px}
   .st .ic{background:#dbeafe}
@@ -29,7 +35,7 @@
   .err{color:#b91c1c;font-size:13.5px;min-height:19px;margin-bottom:4px}
   .note{grid-column:1/-1;text-align:center;font-size:13px;color:var(--sub);margin-top:4px}
   .demo{grid-column:1/-1;background:#fef3c7;color:#92400e;border-radius:12px;padding:10px 14px;font-size:13.5px;text-align:center;display:none}
-  @media (max-width:640px){main{grid-template-columns:1fr}header{padding:28px 16px 64px}header h1{font-size:24px}}
+  @media (max-width:640px){main{grid-template-columns:1fr;grid-template-areas:'demo' 'st' 'tr' 'tc' 'note'}header{padding:28px 16px 64px}header h1{font-size:24px}}
 </style>
 </head>
 <body>
@@ -45,17 +51,23 @@
     <p>결석 신고서를 작성하고 학생과 보호자가 직접 서명해 담임선생님께 제출합니다.</p>
     <a class="go" href="student.html">신고서 작성하기</a>
   </section>
+  <section class="card tr">
+    <div class="ic">🧳</div>
+    <h2>교외체험학습</h2>
+    <p>학교장허가 교외체험학습 <b>신청서</b>(체험 3일 전까지)와 다녀온 뒤 <b>결과보고서</b>(7일 이내)를 작성해 제출합니다.</p>
+    <div class="two"><a class="go teal" href="trip.html#apply">신청서 작성</a><a class="go teal ghost" href="trip.html#report">결과보고서 작성</a></div>
+  </section>
   <section class="card tc">
     <div class="ic">🔒</div>
     <h2>교사</h2>
-    <p>제출된 신고서를 월별로 모아 보고, 확인서를 작성하고, 인쇄합니다.</p>
+    <p>제출된 결석 신고서·출석의견서와 교외체험학습 신청서·결과보고서를 월별로 모아 보고, 확인서·통보서를 작성하고, 인쇄합니다.</p>
     <form id="tf">
       <input type="password" class="pw" id="pw" placeholder="교사 비밀번호" autocomplete="current-password" aria-label="교사 비밀번호">
       <div class="err" id="err"></div>
       <button class="go dark" id="enter">교사 화면 들어가기</button>
     </form>
   </section>
-  <div class="note">학생은 '신고서 작성하기'를 눌러 주세요.</div>
+  <div class="note">학생은 '신고서 작성하기' 또는 교외체험학습의 버튼을 눌러 주세요.</div>
 </main>
 <script>
 (function () {

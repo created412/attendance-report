@@ -23,3 +23,5 @@
   .ab-pad-btns{display:flex;gap:8px;padding:0 16px 16px}
   .ab-pad-btns button{flex:1;height:52px;border-radius:10px;font-size:17px;font-weight:700;border:1px solid #cbd5e1;background:#fff;color:#334155;cursor:pointer;font-family:inherit}
   .ab-pad-btns .ok{flex:1.6;background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+
+.ab-paper .ab-bg{position:absolute;left:0;top:0;width:210mm;height:297mm;pointer-events:none;user-select:none}
