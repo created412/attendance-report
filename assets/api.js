@@ -20,10 +20,12 @@ function clean(rec) {
       docs, detc: docs.indexOf('etc') >= 0 ? s(rec.c_detc, 20) : '', date: s(rec.c_date, 10)
     } : null,
     // 출석의견서(학부모): 출결현황이 '기타'이거나 사유에 '생리'가 있으면 학생 화면에서 함께 작성
-    opinion: rec.opinion ? { who: 'parent', note: s(rec.opinion.note, 30), date: s(rec.opinion.date, 10), pname: s(rec.opinion.pname, 20), sig: String(rec.opinion.sig || '') } : null
+    opinion: rec.opinion ? { who: 'parent', status: '인정', detail: (rec.opinion.detail || []).map((d) => s(d, 4)).slice(0, 4), grade: s(rec.opinion.grade, 2), cls: s(rec.opinion.cls, 2), num: s(rec.opinion.num, 3),
+      name: s(rec.opinion.name, 20), note: s(rec.opinion.note, 30), reason: s(rec.opinion.reason, 120), c1: !!rec.opinion.c1, c2: !!rec.opinion.c2,
+      date: s(rec.opinion.date, 10), pname: s(rec.opinion.pname, 20), sig: String(rec.opinion.sig || '') } : null
   };
 }
-// 교외체험학습: kind = 'apply'(신청서) | 'report'(결과보고서)
+// 교외체험학습: kind = 'apply'(신청서) | 'report'(결과보고서) | 'sheet'(별지·사진 첨부)
 function cleanTrip(kind, rec) {
   const s = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
   const base = { kind, name: s(rec.name, 20), grade: s(rec.grade, 2), cls: s(rec.cls, 2), num: s(rec.num, 3),
@@ -32,6 +34,7 @@ function cleanTrip(kind, rec) {
   if (kind === 'apply') return Object.assign(base, { phone: s(rec.phone, 20), rule: s(rec.rule, 1), dest: s(rec.dest, 40), lodging: s(rec.lodging, 30),
     gname: s(rec.gname, 20), grel: s(rec.grel, 10), gphone: s(rec.gphone, 20), lname: s(rec.lname, 20), lrel: s(rec.lrel, 10), lphone: s(rec.lphone, 20),
     purpose: s(rec.purpose, 100), plan: s(rec.plan, 400) });
+  if (kind === 'sheet') return { kind, name: base.name, grade: base.grade, cls: base.cls, num: base.num, start: base.start, end: base.end, body: s(rec.body, 2000) };
   return Object.assign(base, { place: s(rec.place, 50), title: s(rec.title, 60), body: s(rec.body, 4000) });
 }
 function inMonth(r, ym, basis) {
@@ -109,11 +112,16 @@ if (C.firebase && C.firebase.apiKey && !LOCAL_DEMO) {
     saveTeacherSig: wrap(async (_, url) => { await fs.setDoc(fs.doc(db, 'settings', 'teacher'), { sig: url || '' }, { merge: true }); return true; }),
     saveTeacherName: wrap(async (_, name) => { await fs.setDoc(fs.doc(db, 'settings', 'teacher'), { name: String(name || '').trim().slice(0, 20) }, { merge: true }); return true; }),
     getTeacher: wrap(async () => { const t = await fs.getDoc(fs.doc(db, 'settings', 'teacher')); return t.exists() ? t.data() : {}; }),
-    submitTrip: wrap(async (kind, rec) => {
-      const r = cleanTrip(kind, rec), code = makeCode();
-      await fs.setDoc(fs.doc(fs.collection(db, 'trips')), { ...r, code, state: '접수', notice: null, submitted: fs.serverTimestamp() });
+    submitTrip: wrap(async (kind, rec, photos) => {
+      const r = cleanTrip(kind, rec), code = makeCode(), list = (photos || []).slice(0, 4);
+      const ref = fs.doc(fs.collection(db, 'trips'));
+      await fs.setDoc(ref, { ...r, ...(kind === 'sheet' ? { fileCount: list.length } : {}), code, state: '접수', notice: null, submitted: fs.serverTimestamp() });
+      for (let i = 0; i < list.length; i++) await fs.setDoc(fs.doc(db, 'trips', ref.id, 'files', String(i)), { dataUrl: list[i] });
       return { id: code, time: fmt(new Date()), name: r.name };
     }),
+    getTripFiles: wrap(async (_, id, n) => Promise.all(Array.from({ length: n || 0 }, async (x, i) => {
+      const d = await fs.getDoc(fs.doc(db, 'trips', id, 'files', String(i))); return d.exists() ? d.data().dataUrl : '';
+    }))),
     listTrips: wrap(async (_, ym, basis) => {
       const snap = await fs.getDocs(fs.query(fs.collection(db, 'trips'), fs.orderBy('submitted', 'desc')));
       const items = [];
@@ -125,7 +133,11 @@ if (C.firebase && C.firebase.apiKey && !LOCAL_DEMO) {
       return items.sort(byNum);
     }),
     saveNotice: wrap(async (_, id, notice) => { await fs.updateDoc(fs.doc(db, 'trips', id), { notice: notice || null, state: notice && notice.date ? '통보완료' : '접수' }); return true; }),
-    deleteTrip: wrap(async (_, id) => { await fs.deleteDoc(fs.doc(db, 'trips', id)); return true; })
+    deleteTrip: wrap(async (_, id) => {
+      const s = await fs.getDocs(fs.collection(db, 'trips', id, 'files'));
+      await Promise.all(s.docs.map((d) => fs.deleteDoc(d.ref)));
+      await fs.deleteDoc(fs.doc(db, 'trips', id)); return true;
+    })
   };
 } else {
   /* 체험 모드: 이 브라우저에만 저장 (교사 비밀번호 1234) */
@@ -157,11 +169,13 @@ if (C.firebase && C.firebase.apiKey && !LOCAL_DEMO) {
     saveTeacherSig: async (_, url) => { auth(); localStorage.setItem(S, url || ''); return true; },
     saveTeacherName: async (_, name) => { auth(); localStorage.setItem('demo-tname', String(name || '').trim().slice(0, 20)); return true; },
     getTeacher: async () => { auth(); return { sig: localStorage.getItem(S) || '', name: localStorage.getItem('demo-tname') || '' }; },
-    submitTrip: async (kind, rec) => {
-      const a = JSON.parse(localStorage.getItem('demo-trips') || '[]'), r = cleanTrip(kind, rec), code = makeCode();
-      a.push({ ...r, id: 't' + Date.now(), code, state: '접수', notice: null, submitted: fmt(new Date()) });
+    submitTrip: async (kind, rec, photos) => {
+      const a = JSON.parse(localStorage.getItem('demo-trips') || '[]'), r = cleanTrip(kind, rec), code = makeCode(), id = 't' + Date.now(), list = (photos || []).slice(0, 4);
+      list.forEach((p, i) => localStorage.setItem(`demo-tfile-${id}/${i}`, p));
+      a.push({ ...r, ...(kind === 'sheet' ? { fileCount: list.length } : {}), id, code, state: '접수', notice: null, submitted: fmt(new Date()) });
       localStorage.setItem('demo-trips', JSON.stringify(a)); return { id: code, time: fmt(new Date()), name: r.name };
     },
+    getTripFiles: async (_, id, n) => Array.from({ length: n || 0 }, (x, i) => localStorage.getItem(`demo-tfile-${id}/${i}`) || ''),
     listTrips: async (_, ym, basis) => { auth(); return JSON.parse(localStorage.getItem('demo-trips') || '[]').filter((r) => inMonth(r, ym, basis)).sort(byNum); },
     saveNotice: async (_, id, notice) => {
       auth(); const a = JSON.parse(localStorage.getItem('demo-trips') || '[]');

@@ -6,11 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/sheet.css?v=202610200944">
-<script src="config.js?v=202610200944"></script>
-<script src="assets/sheet.js?v=202610200944"></script>
-<script src="assets/forms.js?v=202610200944"></script>
-<script type="module" src="assets/api.js?v=202610200944"></script>
+<link rel="stylesheet" href="assets/sheet.css?v=202610200959">
+<script src="config.js?v=202610200959"></script>
+<script src="assets/sheet.js?v=202610200959"></script>
+<script src="assets/forms.js?v=202610200959"></script>
+<script type="module" src="assets/api.js?v=202610200959"></script>
 <style>
   :root{--pri:#1d4ed8;--pri-d:#1e3a8a;--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#eef2f7;--ok:#047857;--warn:#b45309}
   *{box-sizing:border-box}
@@ -83,7 +83,8 @@
 
   .tabs{display:flex;gap:8px;margin-bottom:10px}
   .tab{flex:1;height:52px;border-radius:12px;border:2px solid #cbd5e1;background:#fff;font-size:16px;font-weight:700;color:var(--sub);cursor:pointer;font-family:inherit}
-  .tab small{font-weight:400;font-size:12px}
+  .tab small{font-weight:400;font-size:12px;display:block}
+  .tab{height:58px;font-size:15px;line-height:1.25}
   .tab.on{border-color:var(--pri);background:#eff6ff;color:var(--pri)}
   .notice{font-size:13.5px;color:#92400e;background:#fffbeb;border-color:#fcd34d;line-height:1.55}
   #pages{margin-bottom:6px}
@@ -95,6 +96,7 @@
   <div class="tabs" role="tablist">
     <button type="button" class="tab" data-kind="apply" role="tab">① 신청서 <small>(체험학습 전)</small></button>
     <button type="button" class="tab" data-kind="report" role="tab">② 결과보고서 <small>(다녀온 후)</small></button>
+    <button type="button" class="tab" data-kind="sheet" role="tab">③ 별지 <small>(사진 첨부)</small></button>
   </div>
   <div class="card notice" id="notice"></div>
   <div class="prog"><div class="bar"><span id="bar"></span></div><span><b id="done">0</b>/<span id="total">0</span> 항목</span></div>
@@ -156,23 +158,34 @@ var CFG = APP_CFG;
         { k: 'wdate', label: '제출일', type: 'date' }
       ]).concat(SIGN),
       render: function (r, o) { return FORMS.tripReport(r, o); }
+    },
+    sheet: {
+      title: '별지(사진 첨부)', draft: 'trip-sheet-v1',
+      notice: '<b>' + FORMS.PHOTO_NOTE.replace('※ ', '') + '</b><br>사진은 2~4장 올릴 수 있고, 아래에 사진 설명과 느낀 점을 적으세요. 길면 별지가 한 장 더 이어 붙습니다.',
+      fields: COMMON.concat([
+        { k: 'start', label: '교외체험학습 기간 — 시작일', type: 'date', help: '다녀온 교외체험학습의 시작일 (담임선생님이 어떤 체험학습의 별지인지 알아보는 데 씁니다)' },
+        { k: 'end', label: '교외체험학습 기간 — 종료일', type: 'date' },
+        { k: 'photos', label: '사진 첨부 (부모님과 함께 찍은 사진 2장 이상)', type: 'photos' },
+        { k: 'body', label: '사진 설명 · 느낀 점', type: 'textarea', max: 1800, big: true, help: '각 사진이 어떤 장면인지와 느낀 점을 적으세요. 줄을 바꾸려면 엔터를 누르세요.' }
+      ]),
+      render: function (r, o) { return FORMS.tripPhoto(r, o); }
     }
   };
-  var kind = /report/.test(location.hash) ? 'report' : 'apply', K, rec, byKey, guided = false, queue = [], cur = null, daysAuto = true;
-  function blank() { var r = {}; K.fields.forEach(function (f) { r[f.k] = ''; }); return r; }
+  var kind = /report/.test(location.hash) ? 'report' : /sheet/.test(location.hash) ? 'sheet' : 'apply', K, rec, byKey, guided = false, queue = [], cur = null, daysAuto = true;
+  function blank() { var r = {}; K.fields.forEach(function (f) { r[f.k] = f.type === 'photos' ? [] : ''; }); return r; }
   function load() {
     K = KINDS[kind]; byKey = {}; K.fields.forEach(function (f, i) { f.i = i; byKey[f.k] = f; });
     rec = blank(); daysAuto = true;
     try { var d = JSON.parse(localStorage.getItem(K.draft) || 'null'); if (d) { Object.assign(rec, d.rec); daysAuto = d.daysAuto !== false; } } catch (e) {}
     // 결과보고서: 마지막으로 낸 신청서 내용으로 미리 채움
-    if (kind === 'report' && !rec.name) {
-      try { var last = JSON.parse(localStorage.getItem('trip-last-apply') || 'null'); if (last) ['name', 'grade', 'cls', 'num', 'start', 'end', 'days', 'form'].forEach(function (k) { rec[k] = last[k] || ''; }); if (last) { rec.place = last.dest || ''; rec.pname = last.gname || ''; rec.sname = last.name || ''; } } catch (e) {}
+    if ((kind === 'report' || kind === 'sheet') && !rec.name) {
+      try { var last = JSON.parse(localStorage.getItem('trip-last-apply') || 'null'); if (last) ['name', 'grade', 'cls', 'num', 'start', 'end', 'days', 'form'].forEach(function (k) { rec[k] = last[k] || ''; }); if (last && kind === 'report') { rec.place = last.dest || ''; rec.pname = last.gname || ''; rec.sname = last.name || ''; } } catch (e) {}
     }
     document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('on', t.dataset.kind === kind); t.setAttribute('aria-selected', t.dataset.kind === kind); });
     $('#notice').innerHTML = K.notice;
     render();
   }
-  var isEmpty = function (k) { var v = rec[k]; return v === '' || v == null; };
+  var isEmpty = function (k) { var v = rec[k]; return Array.isArray(v) ? v.length < 2 : (v === '' || v == null); };
   var isReq = function (k) { var f = byKey[k]; return f && !f.optional; };
   var missing = function () { return K.fields.filter(function (f) { return isReq(f.k) && isEmpty(f.k); }); };
   function save() { try { localStorage.setItem(K.draft, JSON.stringify({ rec: rec, daysAuto: daysAuto })); } catch (e) {} }
@@ -219,6 +232,7 @@ var CFG = APP_CFG;
       });
       return;
     }
+    if (f.type === 'photos') return photoPicker(k);
     var ov = document.createElement('div'), body = ''; ov.className = 'ms-ov';
     if (f.type === 'choice') {
       body = '<div class="opts">' + f.opts.map(function (o) { return '<button type="button" class="opt' + (rec[k] === o.v ? ' on' : '') + '" data-o="' + o.v + '">' + esc(o.l) + '</button>'; }).join('') + '</div>';
@@ -271,26 +285,70 @@ var CFG = APP_CFG;
     };
   }
 
+  /* 사진 고르기: 2~4장, 휴대폰 사진은 줄여서 올림 */
+  function photoPicker(k) {
+    var list = (rec[k] || []).slice();
+    var ov = document.createElement('div'); ov.className = 'ms-ov';
+    ov.innerHTML = '<div class="ms" role="dialog" aria-modal="true"><small>' + K.title + '</small><h3>사진 첨부</h3>' +
+      '<p class="help">' + esc(FORMS.PHOTO_NOTE.replace('※ ', '')) + ' (2~4장)</p><div class="thumbs" id="th"></div>' +
+      '<input type="file" id="pf" accept="image/*" multiple hidden><div class="err" id="er"></div>' +
+      '<div class="ms-btns"><button type="button" class="btn grow" id="cc">닫기</button><button type="button" class="btn pri grow" id="ok">확인</button></div></div>';
+    document.body.appendChild(ov);
+    function draw() {
+      var h = list.map(function (u, i) { return '<div class="thumb"><img src="' + u + '" alt="사진 ' + (i + 1) + '"><button type="button" data-rm="' + i + '" aria-label="삭제">✕</button></div>'; }).join('');
+      if (list.length < 4) h += '<label class="addph" for="pf">＋<br>사진 추가</label>';
+      ov.querySelector('#th').innerHTML = h;
+      ov.querySelector('#ok').textContent = list.length < 2 ? '사진 ' + list.length + '/2장 이상' : '확인 (' + list.length + '장)';
+    }
+    ov.querySelector('#th').addEventListener('click', function (e) { var b = e.target.closest('[data-rm]'); if (b) { list.splice(+b.dataset.rm, 1); draw(); } });
+    ov.querySelector('#pf').onchange = function () {
+      var files = Array.prototype.slice.call(this.files, 0, 4 - list.length); this.value = '';
+      files.forEach(function (file) { shrink(file, function (u) { if (list.length < 4) { list.push(u); draw(); } }); });
+    };
+    ov.querySelector('#cc').onclick = function () { ov.remove(); guided = false; queue = []; cur = null; render(); };
+    ov.querySelector('#ok').onclick = function () {
+      if (list.length < 2) { ov.querySelector('#er').textContent = '사진을 2장 이상 올려 주세요.'; return; }
+      rec[k] = list; ov.remove(); next();
+    };
+    draw();
+  }
+  function shrink(file, cb) {
+    var img = new Image(), u = URL.createObjectURL(file);
+    img.onload = function () {
+      var max = 1400, q = 0.78, out;
+      do {
+        var k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+        out = c.toDataURL('image/jpeg', q); max *= 0.8; q = Math.max(0.55, q - 0.08);
+      } while (out.length > 700000 && max > 500);
+      URL.revokeObjectURL(u); cb(out);
+    };
+    img.onerror = function () { toast('이미지를 읽을 수 없습니다.'); };
+    img.src = u;
+  }
+
   /* 제출 */
   $('#submitBtn').onclick = function () {
     var m = missing();
     if (m.length) { toast('아직 작성하지 않은 항목: ' + m.map(function (f) { return f.label; }).join(', ')); guided = true; return open(m[0].k); }
     var label = function (opts, v) { var o = opts.filter(function (x) { return x.v === v; })[0]; return o ? o.l : ''; };
     var rows = [['구분', '교외체험학습 ' + K.title], ['학생', rec.grade + '학년 ' + rec.cls + '반 ' + rec.num + '번 ' + rec.name],
-      ['기간', rec.start + ' ~ ' + rec.end + ' (' + rec.days + '일간)'], ['학습형태', label(FORM_OPTS, rec.form)]];
-    if (kind === 'apply') rows.push(['목적지', rec.dest], ['세부 규칙 확인', label(RULE_OPTS, rec.rule)]);
-    else rows.push(['제목', rec.title], ['분량', FORMS.reportPages(rec.body) > 1 ? '결과보고서 + 별지 ' + (FORMS.reportPages(rec.body) - 1) + '장' : '결과보고서 1장']);
+      ['기간', rec.start + ' ~ ' + rec.end + (rec.days ? ' (' + rec.days + '일간)' : '')]];
+    if (kind === 'apply') rows.push(['학습형태', label(FORM_OPTS, rec.form)], ['목적지', rec.dest], ['세부 규칙 확인', label(RULE_OPTS, rec.rule)]);
+    else if (kind === 'report') rows.push(['학습형태', label(FORM_OPTS, rec.form)], ['제목', rec.title], ['분량', FORMS.reportPages(rec.body) > 1 ? '결과보고서 + 별지 ' + (FORMS.reportPages(rec.body) - 1) + '장' : '결과보고서 1장']);
+    else rows.push(['사진', rec.photos.length + '장']);
     var ov = document.createElement('div'); ov.className = 'ms-ov';
     ov.innerHTML = '<div class="ms" role="dialog" aria-modal="true"><small>최종 확인</small><h3>입력하신 내용이 맞습니까?</h3><p class="help">제출 후에는 수정할 수 없습니다.</p><table class="sum">' +
       rows.map(function (r) { return '<tr><th>' + r[0] + '</th><td>' + esc(r[1]) + '</td></tr>'; }).join('') +
-      '<tr><th>서명</th><td>보호자 ' + esc(rec.pname) + ' <img src="' + rec.sigP + '" alt=""> · 학생 ' + esc(rec.sname) + ' <img src="' + rec.sigS + '" alt=""></td></tr></table>' +
+      (kind === 'sheet' ? '' : '<tr><th>서명</th><td>보호자 ' + esc(rec.pname) + ' <img src="' + rec.sigP + '" alt=""> · 학생 ' + esc(rec.sname) + ' <img src="' + rec.sigS + '" alt=""></td></tr>') + '</table>' +
       '<div class="ms-btns"><button type="button" class="btn grow" id="cc">수정하기</button><button type="button" class="btn pri grow" id="go">제출하기</button></div></div>';
     document.body.appendChild(ov);
     ov.querySelector('#cc').onclick = function () { ov.remove(); };
     ov.querySelector('#go').onclick = function () {
       ov.remove();
       var ld = document.createElement('div'); ld.className = 'loading'; ld.textContent = '제출하는 중입니다…'; document.body.appendChild(ld);
-      apiReady.then(function (api) { return api.submitTrip(kind, rec); })
+      apiReady.then(function (api) { return api.submitTrip(kind, rec, kind === 'sheet' ? rec.photos : null); })
         .then(function (res) { ld.remove(); receipt(res); })
         .catch(function (err) { ld.remove(); alert('제출하지 못했습니다.\n' + (err && err.message || err)); });
     };

@@ -69,22 +69,40 @@ var FORMS = (function () {
 
   /* ---------------- 11. 출석(학급담임□ 학부모□)의견서 ---------------- */
   var OP_STATUS = { '질병': 130.47, '미인정': 150.56, '인정': 166.17, '기타': 181.78 };
-  var OP_DETAIL = { '결석': 132.7, '지각': 148.31, '조퇴': 163.93, '결과': 179.54 };
-  // r: { who:'parent'|'teacher', status, detail[], grade, cls, num, name, note, reason, date, pname, sig }
+  var OP_DETAIL = [['결석', 121.68, 135.0, 132.7], ['지각', 137.3, 150.61, 148.31], ['조퇴', 152.91, 166.23, 163.93], ['결과', 168.52, 181.84, 179.54]];
+  // 4번 문장의 괄호: c1 = '학급담임(학부모)'의 (학부모), c2 = '부모님(학급담임)'의 (학급담임)
+  var OP_PAREN = { c1: [54.7, 9.2], c2: [135.0, 11.4] };
+  // r: { who, status, detail[], grade, cls, num, name, note, reason, c1, c2, date, pname, sig }
+  // 학부모 의견서는 출결현황 '인정'이 자동 체크되고, 나머지는 학부모가 직접 씀 (키는 op_ 접두어)
   function opinion(r, o) {
     r = r || {}; o = o || {};
-    var s = '', hs = spotMaker(r, o);
+    var s = '', hs = spotMaker(opKeys(r), o);
     s += CHECK(r.who === 'teacher' ? 99.77 : 131.3, 40.4, 1.55);
     if (OP_STATUS[r.status]) s += CHECK(OP_STATUS[r.status], 89.82);
-    (r.detail || []).forEach(function (d) { if (OP_DETAIL[d]) s += CHECK(OP_DETAIL[d], 96.75); });
+    OP_DETAIL.forEach(function (d) { if ((r.detail || []).indexOf(d[0]) >= 0) s += CHECK(d[3], 96.75); });
     s += C(r.grade, 34.3, 137.58, 13) + C(r.cls, 51.5, 137.58, 13) + C(r.num, 62.97, 137.58, 13);
-    s += C(r.name, 106.2, 137.58, 13, { fit: 52 }) + C(r.note, 161.05, 137.58, 12, { fit: 50 });
+    s += C(r.name, 106.2, 137.58, 13, { fit: 52 }) + C(r.note, 161.05, 137.58, 11, { fit: 51 });
     s += LINES(r.reason, 28.6, [173, 182, 191, 200], 158, 12);
+    ['c1', 'c2'].forEach(function (k) { if (r[k]) s += '<ellipse cx="' + OP_PAREN[k][0] + '" cy="' + (211.16 - 1.6) + '" rx="' + OP_PAREN[k][1] + '" ry="3.5" fill="none" stroke="#000" stroke-width="0.35"/>'; });
     s += DATE(r.date, 253.32, 15, 46.96, 57.55, 73.4);
     s += C(r.pname, 149.1, 253.32, 15, { fit: 32 }) + SIG(r.sig, 170.9, 251.2, 24, 11);
-    var h = hs('op_note', 134.9, 131.4, 52.3, 9.2, '비고') + hs('op_date', 33.4, 246.6, 51, 8.6, '날짜') +
-      hs('op_pname', 132.5, 246.6, 33.5, 8.6, '학부모 성명') + hs('op_sig', 166.2, 246.6, 10.5, 8.6, '학부모 서명');
+    var h = '';
+    OP_DETAIL.forEach(function (d) {
+      if (!o.editable) return;
+      h += '<button type="button" class="ab-hs' + (!(r.detail || []).length && (o.required || function () { return true; })('op_detail') ? ' ab-empty' : '') +
+        '" data-k="op_detail" data-v="' + d[0] + '" aria-label="세부사항 ' + d[0] + '" style="left:' + (d[1] - 0.6) + 'mm;top:' + (96.75 - 4.9) + 'mm;width:' + (d[2] - d[1] + 1.2) + 'mm;height:6.4mm"></button>';
+    });
+    // 학년-반-번호·성명은 결석 신고서에서 자동으로 옮겨 적고, 비고만 직접 씀
+    h += hs('op_note', 134.8, 131.0, 52.5, 9.6, '비고') +
+      hs('op_reason', 22.5, 164.5, 165.5, 39.5, '사유(구체적으로)') +
+      hs('op_c1', 45.6, 205.6, 18.2, 7.4, '(학부모)에 동그라미') + hs('op_c2', 123.7, 205.6, 22.6, 7.4, '(학급담임)에 동그라미') +
+      hs('op_date', 33.4, 246.6, 51, 8.6, '날짜') + hs('op_pname', 132.5, 246.6, 33.5, 8.6, '학부모 성명') + hs('op_sig', 166.2, 246.6, 10.5, 8.6, '학부모 서명');
     return paper(BG('opinion.png'), s, h);
+  }
+  // 노란 칸 판단용: 화면 값(r.grade 등)을 op_ 키로 바꿔 봄
+  function opKeys(r) {
+    return { op_detail: r.detail, op_grade: r.grade, op_cls: r.cls, op_num: r.num, op_name: r.name, op_note: r.note, op_reason: r.reason,
+      op_c1: r.c1 ? 'o' : '', op_c2: r.c2 ? 'o' : '', op_date: r.date, op_pname: r.pname, op_sig: r.sig };
   }
 
   /* ---------------- 12. 교외체험학습 신청서 (+ 아래 통보서: 담임 작성) ---------------- */
@@ -186,11 +204,44 @@ var FORMS = (function () {
     }
     return pages;
   }
+  /* ---------------- 12. 별지(사진 첨부) ---------------- */
+  var PHOTO_NOTE = '※ 교외체험학습을 다녀 온 후 부모님과 함께 찍은 사진 2장 이상을 첨부하여 작성할 것.';
+  var PHOTO_SLOTS = [[24, 68.5, 80, 58], [106.4, 68.5, 80, 58], [24, 130.5, 80, 58], [106.4, 130.5, 80, 58]];
+  function sheetHead(r) {
+    return C(r.name, 64.25, 54.1, 10, { fit: 42 }) + C(r.grade, 138.85, 54.1, 10) + C(r.cls, 155.3, 54.1, 10) + C(r.num, 168.85, 54.1, 10);
+  }
+  function tripPhoto(r, o) {
+    r = r || {}; o = o || {};
+    var hs = spotMaker(r, o), photos = r.photos || [], n = photos.length > 2 ? 4 : 2, s = sheetHead(r);
+    s += T(PHOTO_NOTE, 22.8, 63.2, 10.5, { bold: 1, fit: 166 });
+    PHOTO_SLOTS.slice(0, n).forEach(function (b, i) {
+      s += '<rect x="' + b[0] + '" y="' + b[1] + '" width="' + b[2] + '" height="' + b[3] + '" fill="#fff" stroke="#9ca3af" stroke-width="0.25"' + (photos[i] ? '' : ' stroke-dasharray="1.2 1"') + '/>';
+      if (photos[i]) s += '<image href="' + photos[i] + '" x="' + (b[0] + 0.6) + '" y="' + (b[1] + 0.6) + '" width="' + (b[2] - 1.2) + '" height="' + (b[3] - 1.2) + '" preserveAspectRatio="xMidYMid meet"/>';
+      else s += '<text x="' + (b[0] + b[2] / 2) + '" y="' + (b[1] + b[3] / 2 + 1.5) + '" font-size="4" fill="#9ca3af" text-anchor="middle">사진 ' + (i + 1) + '</text>';
+    });
+    var photoBottom = PHOTO_SLOTS[n - 1][1] + PHOTO_SLOTS[n - 1][3];
+    var rows = SHEET_ROWS.filter(function (b) { return b - 5 > photoBottom; });
+    var lines = splitLines(r.body, SHEET_W, BODY_PT);
+    lines.slice(0, rows.length).forEach(function (l, i) { s += T(l, 22.5, rows[i], BODY_PT); });
+    var h = hs('name', 42.3, 47.1, 43.9, 9.6, '성명') + hs('grade', 135.2, 47.1, 7.3, 9.6, '학년') + hs('cls', 150.7, 47.1, 9.2, 9.6, '반') +
+      hs('num', 164.2, 47.1, 9.3, 9.6, '번호') +
+      hs('photos', 23.5, 68, 163.4, photoBottom - 67.5, '사진 첨부', o.editable && photos.length < 2) +
+      hs('body', 20.8, photoBottom + 1.5, 169.4, 262.5 - photoBottom - 1.5, '사진 설명 · 느낀 점');
+    var pages = [paper(BG('trip-sheet.png'), s, h)];
+    var rest = lines.slice(rows.length);
+    for (var p = 0; p * SHEET_ROWS.length < rest.length; p++) {
+      var t = sheetHead(r);
+      rest.slice(p * SHEET_ROWS.length, (p + 1) * SHEET_ROWS.length).forEach(function (l, i) { t += T(l, 22.5, SHEET_ROWS[i], BODY_PT); });
+      pages.push(paper(BG('trip-sheet.png'), t, hs('body', 20.8, 57.4, 169.4, 205, '사진 설명 · 느낀 점 (이어서)', false)));
+    }
+    return pages;
+  }
+
   // 본문이 몇 장(결과보고서+별지)에 걸치는지
   function reportPages(body) {
     var lines = splitLines(body, BODY_W, BODY_PT), rest = Math.max(0, lines.length - REPORT_ROWS.length);
     return 1 + Math.ceil(rest / SHEET_ROWS.length);
   }
 
-  return { opinion: opinion, tripApply: tripApply, tripReport: tripReport, reportPages: reportPages };
+  return { opinion: opinion, tripApply: tripApply, tripReport: tripReport, tripPhoto: tripPhoto, reportPages: reportPages, PHOTO_NOTE: PHOTO_NOTE };
 })();

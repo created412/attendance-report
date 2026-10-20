@@ -6,11 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/sheet.css?v=202610200944">
-<script src="config.js?v=202610200944"></script>
-<script src="assets/sheet.js?v=202610200944"></script>
-<script src="assets/forms.js?v=202610200944"></script>
-<script type="module" src="assets/api.js?v=202610200944"></script>
+<link rel="stylesheet" href="assets/sheet.css?v=202610200959">
+<script src="config.js?v=202610200959"></script>
+<script src="assets/sheet.js?v=202610200959"></script>
+<script src="assets/forms.js?v=202610200959"></script>
+<script type="module" src="assets/api.js?v=202610200959"></script>
 <style>
   :root{--pri:#1d4ed8;--pri-d:#1e3a8a;--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#eef2f7;--ok:#047857;--warn:#b45309}
   *{box-sizing:border-box}
@@ -118,7 +118,7 @@ var CFG = APP_CFG;
   var blank = function () {
     return { status: '', detail: [], grade: '', cls: '', num: '', name: '', start: '', sp: '', end: '', ep: '', days: '', pcount: '', reason: '', wdate: '',
       c_method: '', c_metc: '', c_docs: [], c_detc: '', c_date: '', sname: '', pname: '', sigS: '', sigP: '',
-      op_note: '', op_date: '', op_pname: '', op_sig: '' };
+      op_detail: [], op_note: '', op_reason: '', op_c1: '', op_c2: '', op_date: '', op_pname: '', op_sig: '' };
   };
   var rec = blank(), files = [], queue = [], guided = false, cur = null, daysAuto = true;
   try { localStorage.removeItem('absence-draft-v1'); localStorage.removeItem('absence-draft-v2'); } catch (e) {}
@@ -142,11 +142,12 @@ var CFG = APP_CFG;
   // 출결현황 '기타' 또는 사유에 '생리'가 있으면 출석의견서(학부모)가 필요
   var needOp = function (x) { x = x || rec; return x.status === '기타' || /생리/.test(x.reason || ''); };
   var lastNeed = null;
+  var opOff = function () { return !needOp(); };
   function opTurnedOn() { var n = needOp(), t = n && lastNeed === false; lastNeed = n; return t; }
   function opData(x) {
     x = x || rec;
-    return { who: 'parent', status: x.status, detail: x.detail, grade: x.grade, cls: x.cls, num: x.num, name: x.name, reason: x.reason,
-      note: x.op_note, date: x.op_date, pname: x.op_pname, sig: x.op_sig };
+    return { who: 'parent', status: '인정', detail: x.op_detail || [], grade: x.grade, cls: x.cls, num: x.num, name: x.name,
+      note: x.op_note, reason: x.op_reason, c1: !!x.op_c1, c2: !!x.op_c2, date: x.op_date, pname: x.op_pname, sig: x.op_sig };
   }
   var needPeriods = function () { return rec.detail.some(function (d) { return d !== '결석'; }); };
   var FIELDS = [
@@ -173,11 +174,16 @@ var CFG = APP_CFG;
     { k: 'sigS', label: '학생 서명', type: 'sign' },
     { k: 'pname', label: '보호자 성명', type: 'text', max: 10, help: '서명할 보호자의 성명을 입력하세요.' },
     { k: 'sigP', label: '보호자 서명', type: 'sign' },
-    // 출석의견서(학부모): 출결현황 '기타' 또는 사유에 '생리'가 있을 때만
-    { k: 'op_note', label: '출석의견서 — 비고', type: 'text', max: 20, optional: function () { return true; }, help: '덧붙일 내용이 있으면 적으세요. 없으면 비워 두세요.' },
-    { k: 'op_date', label: '출석의견서 — 날짜', type: 'date', optional: function () { return !needOp(); }, help: '의견서를 작성하는 날짜' },
-    { k: 'op_pname', label: '출석의견서 — 학부모 성명', type: 'text', max: 10, optional: function () { return !needOp(); }, help: '의견서를 확인하는 학부모 성명' },
-    { k: 'op_sig', label: '출석의견서 — 학부모 서명', type: 'sign', optional: function () { return !needOp(); } }
+    // 출석의견서(학부모): 출결현황 '기타' 또는 사유에 '생리'가 있을 때만. 출결현황은 '인정' 자동 체크
+    { k: 'op_detail', label: '출석의견서 — 세부사항', type: 'multi', opts: ['결석', '지각', '조퇴', '결과'], optional: opOff, help: "출결현황은 '인정'으로 자동 체크됩니다. 해당하는 세부사항을 고르세요." },
+    { k: 'op_note', label: '출석의견서 — 비고', type: 'text', max: 30, optional: opOff, placeholder: '예) 10/12 인정결석',
+      help: '날짜와 내용을 이렇게 적으세요.<br>· <b>10/12 인정결석</b><br>· <b>10/3 1~3교시 인정지각</b><br>· <b>4/12 5~7교시 인정조퇴</b>' },
+    { k: 'op_reason', label: '출석의견서 — 사유 (구체적으로)', type: 'textarea', max: 90, optional: opOff, help: '학부모께서 사유를 구체적으로 직접 적어 주세요.' },
+    { k: 'op_c1', label: '출석의견서 — 4. 학급담임(학부모)의 (학부모)에 ○', type: 'choice', opts: ['○ 표시'], optional: opOff, help: '"4. 학급담임(학부모) 의견"에서 의견을 쓰는 사람이 학부모이므로 (학부모)에 동그라미를 칩니다.' },
+    { k: 'op_c2', label: '출석의견서 — 4. 부모님(학급담임)의 (학급담임)에 ○', type: 'choice', opts: ['○ 표시'], optional: opOff, help: '"위의 내용으로 부모님(학급담임)과 전화통화를 하였고"에서 통화한 상대가 학급담임이므로 (학급담임)에 동그라미를 칩니다.' },
+    { k: 'op_date', label: '출석의견서 — 날짜', type: 'date', optional: opOff, help: '의견서를 작성하는 날짜' },
+    { k: 'op_pname', label: '출석의견서 — 학부모 성명', type: 'text', max: 10, optional: opOff, help: '의견서를 확인하는 학부모 성명' },
+    { k: 'op_sig', label: '출석의견서 — 학부모 서명', type: 'sign', optional: opOff }
   ];
   var byKey = {}; FIELDS.forEach(function (f, i) { f.i = i; byKey[f.k] = f; });
   var isEmpty = function (k) { var v = rec[k]; return Array.isArray(v) ? !v.length : (v === '' || v == null); };
@@ -209,7 +215,7 @@ var CFG = APP_CFG;
     $('#opCard').hidden = oh.hidden = !need;
     if (need) {
       $('#opWhy').textContent = (rec.status === '기타' ? "출결현황에서 '기타'를 골라서" : "사유에 '생리'가 있어서") +
-        ' 학부모 의견서가 필요합니다. 아래 양식의 노란 칸(날짜·학부모 성명·서명)을 채워 주세요. 학년·반·성명·사유는 신고서 내용이 자동으로 들어갑니다.';
+        " 학부모 의견서가 필요합니다. 출결현황은 '인정'으로 자동 체크되어 있습니다. 학년-반-번호와 성명은 위 신고서에서 자동으로 옮겨집니다. 아래 양식의 노란 칸(세부사항·비고·사유·4번 괄호 동그라미·날짜·학부모 서명)을 채워 주세요.";
       oh.innerHTML = FORMS.opinion(opData(), { editable: true, required: isReq, cur: cur });
       AB.fit(oh);
     }
@@ -226,7 +232,7 @@ var CFG = APP_CFG;
     ov.querySelector('#now').onclick = function () {
       ov.remove(); render();
       $('#opHost').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      var m = ['op_date', 'op_pname', 'op_sig'].filter(isEmpty);
+      var m = FIELDS.filter(function (f) { return f.k.indexOf('op_') === 0 && isReq(f.k) && isEmpty(f.k); }).map(function (f) { return f.k; });
       if (m.length) { queue = m.slice(1); setTimeout(function () { open(m[0]); }, 350); }
     };
   }
@@ -256,7 +262,13 @@ var CFG = APP_CFG;
   });
   $('#opHost').addEventListener('click', function (e) {
     var b = e.target.closest('[data-k]'); if (!b) return;
-    guided = false; open(b.dataset.k);
+    var k = b.dataset.k; guided = false;
+    if (k === 'op_detail') {   // 세부사항: 눌러서 체크/해제
+      var v = b.dataset.v, i = rec.op_detail.indexOf(v); i >= 0 ? rec.op_detail.splice(i, 1) : rec.op_detail.push(v);
+      rec.op_detail = ['결석', '지각', '조퇴', '결과'].filter(function (d) { return rec.op_detail.indexOf(d) >= 0; }); render(); return;
+    }
+    if (k === 'op_c1' || k === 'op_c2') { rec[k] = rec[k] ? '' : 'o'; render(); return; }   // 괄호 동그라미: 눌러서 표시/해제
+    open(k);
   });
   $('#nextBtn').onclick = function () {
     var m = missing();
@@ -306,7 +318,7 @@ var CFG = APP_CFG;
       body = '<textarea id="fv" maxlength="' + f.max + '" placeholder="구체적으로 적어 주세요"></textarea><div class="cnt"><span id="cn">0</span>/' + f.max + '자</div>';
     } else {
       var t = f.type === 'number' ? 'text" inputmode="numeric" pattern="[0-9]*' : f.type;
-      body = '<input id="fv" type="' + t + '"' + (f.max ? ' maxlength="' + f.max + '"' : '') + ' autocomplete="off">';
+      body = '<input id="fv" type="' + t + '"' + (f.max ? ' maxlength="' + f.max + '"' : '') + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ' autocomplete="off">';
     }
     ov.innerHTML = '<div class="ms" role="dialog" aria-modal="true"><small>' + stepTxt + '</small><h3>' + f.label + '</h3>' +
       (f.help ? '<p class="help">' + f.help + '</p>' : '') + body + '<div class="err" id="er"></div>' +
@@ -329,7 +341,7 @@ var CFG = APP_CFG;
     ov.querySelectorAll('.opt').forEach(function (b) {
       b.onclick = function () {
         var o = b.dataset.o;
-        if (f.type === 'choice') { rec[k] = o; close(); next(); return; }
+        if (f.type === 'choice') { rec[k] = (k === 'op_c1' || k === 'op_c2') ? 'o' : o; close(); next(); return; }
         var i = picked.indexOf(o); i >= 0 ? picked.splice(i, 1) : picked.push(o); b.classList.toggle('on');
       };
     });
@@ -391,7 +403,7 @@ var CFG = APP_CFG;
       ['학생 서명', AB.esc(rec.sname) + ' <img src="' + rec.sigS + '" alt="">'], ['보호자', (rec.pname || '(생략)') + (rec.sigP ? ' <img src="' + rec.sigP + '" alt="">' : '')],
       ['확인서', '확인 방법: ' + rec.c_method + (rec.c_method === '기타' ? '(' + rec.c_metc + ')' : '') + ' / 증빙: ' + (rec.c_docs.length ? rec.c_docs.map(function (n) { return n === '기타' ? '기타(' + rec.c_detc + ')' : n; }).join(', ') : '없음') + ' / ' + rec.c_date],
       ['증빙사진', files.length ? files.length + '장' : '없음']];
-    if (needOp()) rows.push(['출석의견서 서명', AB.esc(rec.op_pname) + ' <img src="' + rec.op_sig + '" alt=""> (' + AB.esc(rec.op_date) + ')']);
+    if (needOp()) rows.push(['출석의견서 서명', '인정 · ' + AB.esc(rec.op_detail.join(',')) + ' · ' + AB.esc(rec.op_note) + ' / ' + AB.esc(rec.op_pname) + ' <img src="' + rec.op_sig + '" alt=""> (' + AB.esc(rec.op_date) + ')']);
     ov.innerHTML = '<div class="ms" role="dialog" aria-modal="true"><small>최종 확인</small><h3>입력하신 내용이 맞습니까?</h3>' +
       '<p class="help">제출 후에는 수정할 수 없습니다. 잘못 제출했다면 담임선생님께 말씀드리세요.</p><table class="sum">' +
       rows.map(function (r) { return '<tr><th>' + r[0] + '</th><td>' + (r[0].indexOf('서명') >= 0 || r[0] === '보호자' ? r[1] : AB.esc(r[1])) + '</td></tr>'; }).join('') +
@@ -401,7 +413,7 @@ var CFG = APP_CFG;
     ov.querySelector('#go').onclick = function () {
       ov.remove();
       var ld = document.createElement('div'); ld.className = 'loading'; ld.textContent = '제출하는 중입니다…'; document.body.appendChild(ld);
-      apiReady.then(function (api) { return api.submitReport(Object.assign({}, rec, { opinion: needOp() ? { note: rec.op_note, date: rec.op_date, pname: rec.op_pname, sig: rec.op_sig } : null }), files); })
+      apiReady.then(function (api) { return api.submitReport(Object.assign({}, rec, { opinion: needOp() ? opData() : null }), files); })
         .then(function (res) { ld.remove(); receipt(res); })
         .catch(function (err) { ld.remove(); alert('제출하지 못했습니다.\n' + (err && err.message || err)); });
     };

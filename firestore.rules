@@ -39,18 +39,29 @@ service cloud.firestore {
 
     // 교외체험학습 신청서·결과보고서: 학생은 제출만, 담임만 조회·통보서 작성·삭제
     match /trips/{tid} {
-      allow create: if request.resource.data.kind in ['apply', 'report']
+      allow create: if request.resource.data.kind in ['apply', 'report', 'sheet']
         && request.resource.data.keys().hasOnly(
             ['kind', 'name', 'grade', 'cls', 'num', 'start', 'end', 'days', 'form', 'wdate', 'pname', 'sname', 'sigP', 'sigS',
              'phone', 'rule', 'dest', 'lodging', 'gname', 'grel', 'gphone', 'lname', 'lrel', 'lphone', 'purpose', 'plan',
-             'place', 'title', 'body', 'code', 'state', 'notice', 'submitted'])
+             'place', 'title', 'body', 'fileCount', 'code', 'state', 'notice', 'submitted'])
         && str(request.resource.data.name, 20) && str(request.resource.data.grade, 2) && str(request.resource.data.cls, 2)
-        && str(request.resource.data.sigS, 60000) && str(request.resource.data.sigP, 60000)
+        && (!('sigP' in request.resource.data) || str(request.resource.data.sigP, 60000))
         && (!('plan' in request.resource.data) || str(request.resource.data.plan, 400))
         && (!('body' in request.resource.data) || str(request.resource.data.body, 4000))
+        && (!('sigS' in request.resource.data) || str(request.resource.data.sigS, 60000))
+        && (!('fileCount' in request.resource.data) || (request.resource.data.fileCount is int && request.resource.data.fileCount <= 4))
         && request.resource.data.state == '접수' && request.resource.data.notice == null
         && request.resource.data.submitted == request.time;
       allow read, update, delete: if isTeacher();
+
+      // 별지 사진 (장당 1MB 이하, 최대 4장)
+      match /files/{fid} {
+        allow create: if fid in ['0', '1', '2', '3']
+          && exists(/databases/$(db)/documents/trips/$(tid))
+          && request.resource.data.keys().hasOnly(['dataUrl'])
+          && str(request.resource.data.dataUrl, 1000000);
+        allow read, delete: if isTeacher();
+      }
     }
 
     match /settings/{doc} {
