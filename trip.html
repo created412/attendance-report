@@ -6,11 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/sheet.css?v=202610200959">
-<script src="config.js?v=202610200959"></script>
-<script src="assets/sheet.js?v=202610200959"></script>
-<script src="assets/forms.js?v=202610200959"></script>
-<script type="module" src="assets/api.js?v=202610200959"></script>
+<link rel="stylesheet" href="assets/sheet.css?v=202610201040">
+<script src="config.js?v=202610201040"></script>
+<script src="assets/sheet.js?v=202610201040"></script>
+<script src="assets/forms.js?v=202610201040"></script>
+<script type="module" src="assets/api.js?v=202610201040"></script>
 <style>
   :root{--pri:#1d4ed8;--pri-d:#1e3a8a;--ink:#0f172a;--sub:#475569;--line:#e2e8f0;--bg:#eef2f7;--ok:#047857;--warn:#b45309}
   *{box-sizing:border-box}
@@ -96,7 +96,6 @@
   <div class="tabs" role="tablist">
     <button type="button" class="tab" data-kind="apply" role="tab">① 신청서 <small>(체험학습 전)</small></button>
     <button type="button" class="tab" data-kind="report" role="tab">② 결과보고서 <small>(다녀온 후)</small></button>
-    <button type="button" class="tab" data-kind="sheet" role="tab">③ 별지 <small>(사진 첨부)</small></button>
   </div>
   <div class="card notice" id="notice"></div>
   <div class="prog"><div class="bar"><span id="bar"></span></div><span><b id="done">0</b>/<span id="total">0</span> 항목</span></div>
@@ -147,14 +146,15 @@ var CFG = APP_CFG;
     },
     report: {
       title: '결과보고서', draft: 'trip-report-v1',
-      notice: '체험학습이 끝난 뒤 <b>7일 이내</b>에 제출하세요. 느낀 점·배운 점이 길면 <b>별지</b>가 자동으로 이어 붙습니다.',
+      notice: '체험학습이 끝난 뒤 <b>7일 이내</b>에 제출하세요. 결과보고서 다음 장은 <b>별지</b>로 이어집니다.<br><b>' + FORMS.PHOTO_NOTE.replace('※ ', '') + '</b> 느낀 점이 길면 별지의 사진 아래로 이어서 적힙니다.',
       fields: COMMON.concat([
         { k: 'start', label: '교외체험학습 기간 — 시작일', type: 'date' }, { k: 'end', label: '교외체험학습 기간 — 종료일', type: 'date' },
         { k: 'days', label: '교외체험학습 기간 — 일수', type: 'number', help: '주말을 빼고 자동 계산했습니다. 다르면 고쳐 주세요.' },
         { k: 'place', label: '교외체험학습 장소', type: 'text', max: 50 },
         { k: 'form', label: '학습형태', type: 'choice', opts: FORM_OPTS },
         { k: 'title', label: '제목', type: 'text', max: 60 },
-        { k: 'body', label: '느낀 점 · 배운 점', type: 'textarea', max: 3800, big: true, help: '각 일정별로 느낀 점, 배운 점 등을 학생이 직접 기록합니다. 줄을 바꾸려면 엔터를 누르세요.' },
+        { k: 'body', label: '느낀 점 · 배운 점', type: 'textarea', max: 3800, big: true, help: '각 일정별로 느낀 점, 배운 점 등을 학생이 직접 기록합니다. 줄을 바꾸려면 엔터를 누르세요. 결과보고서 칸을 넘치면 별지에 이어서 적힙니다.' },
+        { k: 'photos', label: '별지 — 사진 첨부 (부모님과 함께 찍은 사진 2장 이상)', type: 'photos' },
         { k: 'wdate', label: '제출일', type: 'date' }
       ]).concat(SIGN),
       render: function (r, o) { return FORMS.tripReport(r, o); }
@@ -171,14 +171,14 @@ var CFG = APP_CFG;
       render: function (r, o) { return FORMS.tripPhoto(r, o); }
     }
   };
-  var kind = /report/.test(location.hash) ? 'report' : /sheet/.test(location.hash) ? 'sheet' : 'apply', K, rec, byKey, guided = false, queue = [], cur = null, daysAuto = true;
+  var kind = /report|sheet/.test(location.hash) ? 'report' : 'apply', K, rec, byKey, guided = false, queue = [], cur = null, daysAuto = true;
   function blank() { var r = {}; K.fields.forEach(function (f) { r[f.k] = f.type === 'photos' ? [] : ''; }); return r; }
   function load() {
     K = KINDS[kind]; byKey = {}; K.fields.forEach(function (f, i) { f.i = i; byKey[f.k] = f; });
     rec = blank(); daysAuto = true;
     try { var d = JSON.parse(localStorage.getItem(K.draft) || 'null'); if (d) { Object.assign(rec, d.rec); daysAuto = d.daysAuto !== false; } } catch (e) {}
     // 결과보고서: 마지막으로 낸 신청서 내용으로 미리 채움
-    if ((kind === 'report' || kind === 'sheet') && !rec.name) {
+    if (kind === 'report' && !rec.name) {
       try { var last = JSON.parse(localStorage.getItem('trip-last-apply') || 'null'); if (last) ['name', 'grade', 'cls', 'num', 'start', 'end', 'days', 'form'].forEach(function (k) { rec[k] = last[k] || ''; }); if (last && kind === 'report') { rec.place = last.dest || ''; rec.pname = last.gname || ''; rec.sname = last.name || ''; } } catch (e) {}
     }
     document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('on', t.dataset.kind === kind); t.setAttribute('aria-selected', t.dataset.kind === kind); });
@@ -264,7 +264,7 @@ var CFG = APP_CFG;
       inp.value = v || '';
       if (f.type === 'textarea') {
         var cn = ov.querySelector('#cn'), pg = ov.querySelector('#pg');
-        var upd = function () { cn.textContent = inp.value.length; if (pg) { var n = FORMS.reportPages(inp.value); pg.textContent = n > 1 ? '결과보고서 + 별지 ' + (n - 1) + '장' : '결과보고서 1장'; } };
+        var upd = function () { cn.textContent = inp.value.length; if (pg) { var n = FORMS.reportPages(inp.value, (rec.photos || []).length); pg.textContent = '결과보고서 + 별지 ' + (n - 1) + '장'; } };
         inp.oninput = upd; upd();
       }
       setTimeout(function () { try { inp.focus(); } catch (e) {} }, 60);
@@ -336,7 +336,7 @@ var CFG = APP_CFG;
     var rows = [['구분', '교외체험학습 ' + K.title], ['학생', rec.grade + '학년 ' + rec.cls + '반 ' + rec.num + '번 ' + rec.name],
       ['기간', rec.start + ' ~ ' + rec.end + (rec.days ? ' (' + rec.days + '일간)' : '')]];
     if (kind === 'apply') rows.push(['학습형태', label(FORM_OPTS, rec.form)], ['목적지', rec.dest], ['세부 규칙 확인', label(RULE_OPTS, rec.rule)]);
-    else if (kind === 'report') rows.push(['학습형태', label(FORM_OPTS, rec.form)], ['제목', rec.title], ['분량', FORMS.reportPages(rec.body) > 1 ? '결과보고서 + 별지 ' + (FORMS.reportPages(rec.body) - 1) + '장' : '결과보고서 1장']);
+    else if (kind === 'report') rows.push(['학습형태', label(FORM_OPTS, rec.form)], ['제목', rec.title], ['사진', rec.photos.length + '장'], ['분량', '결과보고서 + 별지 ' + (FORMS.reportPages(rec.body, rec.photos.length) - 1) + '장']);
     else rows.push(['사진', rec.photos.length + '장']);
     var ov = document.createElement('div'); ov.className = 'ms-ov';
     ov.innerHTML = '<div class="ms" role="dialog" aria-modal="true"><small>최종 확인</small><h3>입력하신 내용이 맞습니까?</h3><p class="help">제출 후에는 수정할 수 없습니다.</p><table class="sum">' +
@@ -348,7 +348,7 @@ var CFG = APP_CFG;
     ov.querySelector('#go').onclick = function () {
       ov.remove();
       var ld = document.createElement('div'); ld.className = 'loading'; ld.textContent = '제출하는 중입니다…'; document.body.appendChild(ld);
-      apiReady.then(function (api) { return api.submitTrip(kind, rec, kind === 'sheet' ? rec.photos : null); })
+      apiReady.then(function (api) { return api.submitTrip(kind, rec, kind === 'report' ? rec.photos : null); })
         .then(function (res) { ld.remove(); receipt(res); })
         .catch(function (err) { ld.remove(); alert('제출하지 못했습니다.\n' + (err && err.message || err)); });
     };

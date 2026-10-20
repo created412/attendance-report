@@ -191,18 +191,9 @@ var FORMS = (function () {
       hs('wdate', 88, 222.4, 34, 5.4, '제출일') +
       hs('pname', 160.5, 228.2, 18, 5.4, '보호자 성명') + hs('sigP', 178.4, 228.2, 6.5, 5.4, '보호자 서명') +
       hs('sname', 160.5, 233.1, 18, 5.4, '학생 성명') + hs('sigS', 178.4, 233.1, 6.5, 5.4, '학생 서명');
-    var pages = [paper(BG('trip-report.png'), s, h)];
-    // 별지: 본문이 결과보고서 칸을 넘치면 별지에 이어서 씀
-    var rest = lines.slice(REPORT_ROWS.length);
-    if (rest.length) {
-      var more = splitLines(rest.join('\n'), SHEET_W, BODY_PT);
-      for (var p = 0; p * SHEET_ROWS.length < more.length; p++) {
-        var t = C(r.name, 64.25, 54.1, 10, { fit: 42 }) + C(r.grade, 138.85, 54.1, 10) + C(r.cls, 155.3, 54.1, 10) + C(r.num, 168.85, 54.1, 10);
-        more.slice(p * SHEET_ROWS.length, (p + 1) * SHEET_ROWS.length).forEach(function (l, i) { t += T(l, 22.5, SHEET_ROWS[i], BODY_PT); });
-        pages.push(paper(BG('trip-sheet.png'), t, hs('body', 20.8, 57.4, 169.4, 205, '느낀 점·배운 점 (별지)', false)));
-      }
-    }
-    return pages;
+    // 결과보고서 다음 장은 항상 별지: 안내 문구 + 사진(2장 이상) + 결과보고서 칸을 넘친 느낀 점을 이어서 씀
+    var rest = lines.slice(REPORT_ROWS.length).join('\n');
+    return [paper(BG('trip-report.png'), s, h)].concat(tripPhoto(r, Object.assign({}, o, { restBody: rest, fromReport: true })));
   }
   /* ---------------- 12. 별지(사진 첨부) ---------------- */
   var PHOTO_NOTE = '※ 교외체험학습을 다녀 온 후 부모님과 함께 찍은 사진 2장 이상을 첨부하여 작성할 것.';
@@ -221,12 +212,12 @@ var FORMS = (function () {
     });
     var photoBottom = PHOTO_SLOTS[n - 1][1] + PHOTO_SLOTS[n - 1][3];
     var rows = SHEET_ROWS.filter(function (b) { return b - 5 > photoBottom; });
-    var lines = splitLines(r.body, SHEET_W, BODY_PT);
+    var lines = splitLines(o.fromReport ? o.restBody : r.body, SHEET_W, BODY_PT);
     lines.slice(0, rows.length).forEach(function (l, i) { s += T(l, 22.5, rows[i], BODY_PT); });
     var h = hs('name', 42.3, 47.1, 43.9, 9.6, '성명') + hs('grade', 135.2, 47.1, 7.3, 9.6, '학년') + hs('cls', 150.7, 47.1, 9.2, 9.6, '반') +
       hs('num', 164.2, 47.1, 9.3, 9.6, '번호') +
       hs('photos', 23.5, 68, 163.4, photoBottom - 67.5, '사진 첨부', o.editable && photos.length < 2) +
-      hs('body', 20.8, photoBottom + 1.5, 169.4, 262.5 - photoBottom - 1.5, '사진 설명 · 느낀 점');
+      hs('body', 20.8, photoBottom + 1.5, 169.4, 262.5 - photoBottom - 1.5, o.fromReport ? '느낀 점·배운 점 (이어서)' : '사진 설명 · 느낀 점', o.fromReport ? false : null);
     var pages = [paper(BG('trip-sheet.png'), s, h)];
     var rest = lines.slice(rows.length);
     for (var p = 0; p * SHEET_ROWS.length < rest.length; p++) {
@@ -238,10 +229,14 @@ var FORMS = (function () {
   }
 
   // 본문이 몇 장(결과보고서+별지)에 걸치는지
-  function reportPages(body) {
-    var lines = splitLines(body, BODY_W, BODY_PT), rest = Math.max(0, lines.length - REPORT_ROWS.length);
-    return 1 + Math.ceil(rest / SHEET_ROWS.length);
+  function reportPages(body, nPhotos) {
+    var lines = splitLines(body, BODY_W, BODY_PT), rest = lines.slice(REPORT_ROWS.length);
+    var more = splitLines(rest.join('\n'), SHEET_W, BODY_PT), n = nPhotos > 2 ? 4 : 2;
+    var bottom = PHOTO_SLOTS[n - 1][1] + PHOTO_SLOTS[n - 1][3];
+    var first = SHEET_ROWS.filter(function (y) { return y - 5 > bottom; }).length;
+    return 2 + Math.max(0, Math.ceil((more.length - first) / SHEET_ROWS.length));
   }
+
 
   return { opinion: opinion, tripApply: tripApply, tripReport: tripReport, tripPhoto: tripPhoto, reportPages: reportPages, PHOTO_NOTE: PHOTO_NOTE };
 })();

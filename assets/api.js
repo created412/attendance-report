@@ -115,7 +115,7 @@ if (C.firebase && C.firebase.apiKey && !LOCAL_DEMO) {
     submitTrip: wrap(async (kind, rec, photos) => {
       const r = cleanTrip(kind, rec), code = makeCode(), list = (photos || []).slice(0, 4);
       const ref = fs.doc(fs.collection(db, 'trips'));
-      await fs.setDoc(ref, { ...r, ...(kind === 'sheet' ? { fileCount: list.length } : {}), code, state: '접수', notice: null, submitted: fs.serverTimestamp() });
+      await fs.setDoc(ref, { ...r, ...(kind === 'sheet' || kind === 'report' ? { fileCount: list.length } : {}), code, state: '접수', notice: null, submitted: fs.serverTimestamp() });
       for (let i = 0; i < list.length; i++) await fs.setDoc(fs.doc(db, 'trips', ref.id, 'files', String(i)), { dataUrl: list[i] });
       return { id: code, time: fmt(new Date()), name: r.name };
     }),
@@ -172,7 +172,7 @@ if (C.firebase && C.firebase.apiKey && !LOCAL_DEMO) {
     submitTrip: async (kind, rec, photos) => {
       const a = JSON.parse(localStorage.getItem('demo-trips') || '[]'), r = cleanTrip(kind, rec), code = makeCode(), id = 't' + Date.now(), list = (photos || []).slice(0, 4);
       list.forEach((p, i) => localStorage.setItem(`demo-tfile-${id}/${i}`, p));
-      a.push({ ...r, ...(kind === 'sheet' ? { fileCount: list.length } : {}), id, code, state: '접수', notice: null, submitted: fmt(new Date()) });
+      a.push({ ...r, ...(kind === 'sheet' || kind === 'report' ? { fileCount: list.length } : {}), id, code, state: '접수', notice: null, submitted: fmt(new Date()) });
       localStorage.setItem('demo-trips', JSON.stringify(a)); return { id: code, time: fmt(new Date()), name: r.name };
     },
     getTripFiles: async (_, id, n) => Array.from({ length: n || 0 }, (x, i) => localStorage.getItem(`demo-tfile-${id}/${i}`) || ''),
