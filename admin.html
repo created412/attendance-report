@@ -573,5 +573,6 @@ var CFG = APP_CFG;
   call('currentTeacher').then(function (who) { if (who) entered({ sheetUrl: API.mode === 'firebase' ? 'https://console.firebase.google.com/project/' + CFG.firebase.projectId + '/firestore/data' : '' }); else { loading(false); loginView(); } }).catch(function (m) { loading(false); loginView(m); });
 })();
 </script>
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "57f0fcae6466423b9aa2850dc32b276f"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
