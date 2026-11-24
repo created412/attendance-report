@@ -152,7 +152,7 @@ var CFG = APP_CFG;
   var needPeriods = function () { return rec.detail.some(function (d) { return d !== '결석'; }); };
   var FIELDS = [
     { k: 'status', label: '출결현황', type: 'choice', opts: ['질병', '인정', '기타'], help: '해당하는 항목 하나를 고르세요.' },
-    { k: 'detail', label: '세부사항', type: 'multi', opts: ['결석', '지각', '조퇴', '결과'], help: '해당하는 항목을 모두 고르세요.' },
+    { k: 'detail', label: '세부사항', type: 'multi', opts: ['결석', '지각', '조퇴', '결과'], help: '해당하는 항목을 모두 고르세요. (지각과 조퇴는 함께 고를 수 없습니다)' },
     { k: 'grade', label: '학년', type: 'number', help: '몇 학년인지 숫자만 입력하세요. (예: 2)' },
     { k: 'cls', label: '반', type: 'number', help: '몇 반인지 숫자만 입력하세요. (예: 10)' },
     { k: 'num', label: '번호', type: 'number', help: '출석번호를 입력하세요.' },
@@ -175,7 +175,7 @@ var CFG = APP_CFG;
     { k: 'pname', label: '보호자 성명', type: 'text', max: 10, help: '서명할 보호자의 성명을 입력하세요.' },
     { k: 'sigP', label: '보호자 서명', type: 'sign' },
     // 출석의견서(학부모): 출결현황 '기타' 또는 사유에 '생리'가 있을 때만. 출결현황은 '인정' 자동 체크
-    { k: 'op_detail', label: '출석의견서 — 세부사항', type: 'multi', opts: ['결석', '지각', '조퇴', '결과'], optional: opOff, help: "출결현황은 '인정'으로 자동 체크됩니다. 해당하는 세부사항을 고르세요." },
+    { k: 'op_detail', label: '출석의견서 — 세부사항', type: 'multi', opts: ['결석', '지각', '조퇴', '결과'], optional: opOff, help: "출결현황은 '인정'으로 자동 체크됩니다. 해당하는 세부사항을 고르세요. (지각과 조퇴는 함께 고를 수 없습니다)" },
     { k: 'op_note', label: '출석의견서 — 비고', type: 'text', max: 30, optional: opOff, placeholder: '예) 10/12 인정결석',
       help: '날짜와 내용을 이렇게 적으세요.<br>· <b>10/12 인정결석</b><br>· <b>10/3 1~3교시 인정지각</b><br>· <b>4/12 5~7교시 인정조퇴</b>' },
     { k: 'op_reason', label: '출석의견서 — 사유 (구체적으로)', type: 'textarea', max: 90, optional: opOff, help: '학부모께서 사유를 구체적으로 직접 적어 주세요.' },
@@ -185,6 +185,17 @@ var CFG = APP_CFG;
     { k: 'op_pname', label: '출석의견서 — 학부모 성명', type: 'text', max: 10, optional: opOff, help: '의견서를 확인하는 학부모 성명' },
     { k: 'op_sig', label: '출석의견서 — 학부모 서명', type: 'sign', optional: opOff }
   ];
+  // 세부사항: 지각과 조퇴는 함께 고를 수 없음 (하나를 고르면 다른 하나는 자동 해제)
+  var CLASH = { '지각': '조퇴', '조퇴': '지각' };
+  var CLASH_MSG = '지각과 조퇴는 함께 고를 수 없습니다. 둘 다 해당되면 신고서를 따로 제출해 주세요.';
+  function toggleDetail(list, v) {
+    var i = list.indexOf(v);
+    if (i >= 0) { list.splice(i, 1); return list; }
+    var j = CLASH[v] ? list.indexOf(CLASH[v]) : -1;
+    if (j >= 0) { list.splice(j, 1); toast(CLASH_MSG); }
+    list.push(v); return list;
+  }
+  var bothLateEarly = function (list) { return (list || []).indexOf('지각') >= 0 && (list || []).indexOf('조퇴') >= 0; };
   var byKey = {}; FIELDS.forEach(function (f, i) { f.i = i; byKey[f.k] = f; });
   var isEmpty = function (k) { var v = rec[k]; return Array.isArray(v) ? !v.length : (v === '' || v == null); };
   var isReq = function (k) { var f = byKey[k]; return !(f.optional && f.optional()); };
@@ -257,14 +268,14 @@ var CFG = APP_CFG;
     }
     if (k === 'cf:date') k = 'c_date';
     if (k === 'status') { rec.status = rec.status === v ? '' : v; render(); if (opTurnedOn()) promptOp(); return; }
-    if (k === 'detail') { var j = rec.detail.indexOf(v); j >= 0 ? rec.detail.splice(j, 1) : rec.detail.push(v); render(); return; }
+    if (k === 'detail') { toggleDetail(rec.detail, v); render(); return; }
     open(k);
   });
   $('#opHost').addEventListener('click', function (e) {
     var b = e.target.closest('[data-k]'); if (!b) return;
     var k = b.dataset.k; guided = false;
     if (k === 'op_detail') {   // 세부사항: 눌러서 체크/해제
-      var v = b.dataset.v, i = rec.op_detail.indexOf(v); i >= 0 ? rec.op_detail.splice(i, 1) : rec.op_detail.push(v);
+      toggleDetail(rec.op_detail, b.dataset.v);
       rec.op_detail = ['결석', '지각', '조퇴', '결과'].filter(function (d) { return rec.op_detail.indexOf(d) >= 0; }); render(); return;
     }
     if (k === 'op_c1' || k === 'op_c2') { rec[k] = rec[k] ? '' : 'o'; render(); return; }   // 괄호 동그라미: 눌러서 표시/해제
@@ -342,6 +353,11 @@ var CFG = APP_CFG;
       b.onclick = function () {
         var o = b.dataset.o;
         if (f.type === 'choice') { rec[k] = (k === 'op_c1' || k === 'op_c2') ? 'o' : o; close(); next(); return; }
+        if (k === 'detail' || k === 'op_detail') {
+          toggleDetail(picked, o);
+          ov.querySelectorAll('.opt').forEach(function (x) { x.classList.toggle('on', picked.indexOf(x.dataset.o) >= 0); });
+          return;
+        }
         var i = picked.indexOf(o); i >= 0 ? picked.splice(i, 1) : picked.push(o); b.classList.toggle('on');
       };
     });
@@ -351,7 +367,7 @@ var CFG = APP_CFG;
     var ok = ov.querySelector('#ok');
     if (ok) ok.onclick = function () {
       var val;
-      if (f.type === 'multi') { if (!picked.length && isReq(k)) { er.textContent = '하나 이상 골라 주세요.'; return; } rec[k] = f.opts.filter(function (d) { return picked.indexOf(d) >= 0; }); close(); next(); return; }
+      if (f.type === 'multi') { if (!picked.length && isReq(k)) { er.textContent = '하나 이상 골라 주세요.'; return; } if (bothLateEarly(picked)) { er.textContent = CLASH_MSG; return; } rec[k] = f.opts.filter(function (d) { return picked.indexOf(d) >= 0; }); close(); next(); return; }
       val = inp.value.trim();
       if (!val && !isReq(k)) { rec[k] = ''; close(); next(); return; }   // 선택 항목은 비워도 됨
       if (!val) { er.textContent = '내용을 입력해 주세요.'; return; }
@@ -397,6 +413,8 @@ var CFG = APP_CFG;
   $('#submitBtn').onclick = function () {
     var m = missing();
     if (m.length) { toast('아직 작성하지 않은 항목: ' + m.map(function (f) { return f.label; }).join(', ')); guided = true; open(m[0].k); return; }
+    if (bothLateEarly(rec.detail)) { toast(CLASH_MSG); open('detail'); return; }
+    if (needOp() && bothLateEarly(rec.op_detail)) { toast(CLASH_MSG); open('op_detail'); return; }
     var ov = document.createElement('div'); ov.className = 'ms-ov';
     var rows = [['출결현황', rec.status], ['세부사항', rec.detail.join(', ')], ['학생', rec.grade + '학년 ' + rec.cls + '반 ' + rec.num + '번 ' + rec.name],
       ['기간', rec.start + ' ' + rec.sp + '교시 ~ ' + rec.end + ' ' + rec.ep + '교시 (' + [rec.days ? rec.days + '일간' : '', rec.pcount ? rec.pcount + '교시' : ''].filter(Boolean).join(' ') + ')'], ['사유', rec.reason], ['작성일', rec.wdate],
